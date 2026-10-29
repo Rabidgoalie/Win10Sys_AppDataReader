@@ -24,7 +24,7 @@ The application follows a modular, layered architecture separating system bootst
 ```
 
 ## 2. Module Specifications
-* **`setup.sh`**: Detects execution environment (Conda vs. Live USB), verifies Python/Git/ntfs-3g prerequisites, and installs local dependencies.
+* **`setup.sh`**: Environment bootstrap orchestrator. Detects execution context (Conda vs. bare host), verifies prerequisites (`git`, `python3.12`, `ntfs-3g`), and installs local Python dependencies. Restricts system-level package installation (e.g., `ntfs-3g`) strictly to verified Ubuntu 24.04 Live USB sessions and requires explicit user confirmation after displaying a warning against bare host modifications.
 * **`src/ingest/`**: Package containing ingestion modules: `manifest_parser.py` for `ntfsls` text output reading (`ADR-1`) and `registry_parser.py` for offline Windows `SOFTWARE`/`SYSTEM` hive parsing.
 * **`src/heuristics.py`**: Implements directory traversal and pattern matching against application folders to flag hidden user save files.
 * **`src/db.py`**: Manages SQLite connection pooling, schema initialization, and transactional persistence based on `docs/design/DDD.md`.
