@@ -14,3 +14,8 @@
 * **Context:** Application enumeration and heuristic scanning are time-consuming operations that users should not have to repeat.
 * **Decision:** Support exporting enumeration results to a structured snapshot file and implement a Read-Only Viewer mode when loading reports.
 * **Consequences:** Saves user time, prevents accidental re-triggering of long-running scans, and simplifies UI state management.
+
+## ADR-4: Thread-Safe Queue Communication for Asynchronous UI Updates
+* **Context:** Ingestion and heuristic scanning are heavy operations that would freeze the Tkinter GUI if executed on the main thread (`NFR-1`).
+* **Decision:** Execute background tasks in daemon threads communicating back to `app/ui.py` exclusively via `queue.Queue` and thread-safe callbacks.
+* **Consequences:** Ensures 60 FPS UI responsiveness and decouples background workers from presentation logic.
