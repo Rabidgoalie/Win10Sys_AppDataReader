@@ -25,10 +25,11 @@ The application follows a modular, layered architecture separating system bootst
 
 ## 2. Module Specifications
 * **`setup.sh`**: Detects execution environment (Conda vs. Live USB), verifies Python/Git/ntfs-3g prerequisites, and installs local dependencies.
-* **`src/ingest`**: Handles user drive path inputs, executes `sudo ntfsls -f` when raw partitions are targeted, and reads offline registry hives (`SOFTWARE`, `SYSTEM`).
+* **`src/ingest/`**: Package containing ingestion modules: `manifest_parser.py` for `ntfsls` text output reading (`ADR-1`) and `registry_parser.py` for offline Windows `SOFTWARE`/`SYSTEM` hive parsing.
 * **`src/heuristics.py`**: Implements directory traversal and pattern matching against application folders to flag hidden user save files.
 * **`src/db.py`**: Manages SQLite connection pooling, schema initialization, and transactional persistence based on `docs/design/DDD.md`.
 * **`src/state.py`**: Manages data serialization, exporting enumeration results to snapshot reports, and loading reports into memory.
+* **`src/coordinator.py`**: Manages background worker threads and thread-safe `queue.Queue` communication between ingestion/heuristics and the UI (`NFR-1`, `ADR-4`).
 * **`src/ui.py`**: Implements the Tkinter GUI, providing treeview tables, progress bars, and mode-switching between active scanning and read-only report viewing.
 
 ## 3. Data Flow & State Management
@@ -39,10 +40,12 @@ The application follows a modular, layered architecture separating system bootst
 
 ## 4. Detailed Module Map & Core APIs
 * **`setup.sh`**: `check_environment()`, `install_dependencies()`
-* **`src/ingest`**: `parse_manifest(manifest_path: str) -> List[AppRecord]`, `read_registry_hives(hive_dir: str) -> RegistryData`
+* **`src/ingest/manifest_parser.py`**: `parse_manifest(manifest_path: str) -> List[AppRecord]`
+* **`src/ingest/registry_parser.py`**: `read_registry_hives(hive_dir: str) -> RegistryData`
 * **`src/heuristics.py`**: `scan_for_saves(install_path: str) -> List[HeuristicSaveResult]`
 * **`src/db.py`**: `init_db(db_path: str)`, `save_session_data(session: ScanSession)`, `load_session_data(session_id: str)`
 * **`src/state.py`**: `export_snapshot(session_id: str, output_path: str)`, `import_snapshot(snapshot_path: str) -> ScanSession`
+* **`src/coordinator.py`**: `ScanCoordinator(queue: queue.Queue)`, `run_background_scan(...)`
 * **`src/ui.py`**: `AppDashboard(tk.Tk)`, `update_treeview(records: List[AppRecord])`, `set_view_mode(mode: str)`
 
 ### 4.1 Dependency Graph & Coupling Analysis
@@ -73,6 +76,6 @@ The application follows a modular, layered architecture separating system bootst
 ```
 
 ## 5. Architectural Patterns & Decoupling Strategies
-* **Observer / Callback Pattern (`NFR-1`):** Background worker threads communicate progress and parsed records back to `app/ui.py` using thread-safe queues (`queue.Queue`) and Tkinter event bindings, ensuring the UI remains non-blocking and responsive.
+* **Observer / Callback Pattern (`NFR-1`):** Background worker threads communicate progress and parsed records back to `src/ui.py` using thread-safe queues (`queue.Queue`) and Tkinter event bindings, ensuring the UI remains non-blocking and responsive.
 * **Data Transfer Objects (DTOs):** Ingestion and heuristic layers pass immutable Python `dataclasses` (`AppRecord`) rather than raw database cursors or UI widgets, enforcing strict boundary encapsulation.
 * **Testability:** All modules are independently testable via `pytest` with mocked filesystem paths and dummy registry hive fixtures, requiring no live root privileges or physical drives during unit testing.

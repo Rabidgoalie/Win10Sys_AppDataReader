@@ -1,7 +1,7 @@
 # Database Design Document (DDD): Windows 10 Disaster Recovery Application
 
 ## 1. Architecture Overview & Storage Strategy
-The application utilizes a lightweight, file-based persistence strategy leveraging SQLite for active session caching and structured JSON for portable snapshot exports. This ensures zero external database server dependency while maintaining ACID compliance and efficient querying over parsed registry keys and heuristic save directories.
+The application utilizes a lightweight, file-based persistence strategy leveraging SQLite for active session caching and structured JSON for portable snapshot exports (`FR-5`, `ADR-3`). Exporting a snapshot serializes the SQLite session along with its related child records (`APP_RECORD`, `REGISTRY_KEY`, `HEURISTIC_SAVE`) into a structured JSON file. Importing a snapshot rehydrates these records into a temporary SQLite database to drive the UI in read-only viewer mode. This ensures zero external database server dependency while maintaining ACID compliance and efficient querying over parsed registry keys and heuristic save directories.
 
 ```
 ┌────────────────────────────────────────────────────────┐
