@@ -35,4 +35,44 @@ The application follows a modular, layered architecture separating system bootst
 1. User provides paths via GUI dialogs.
 2. Ingestion layer extracts registry and manifest data into intermediate data classes (`AppRecord`).
 3. Heuristic engine decorates records with local save findings.
-4. UI renders records; user can export snapshots or reload previous exports to lock the UI into report-viewer mode.
+4. UI records render; user can export snapshots or reload previous exports to lock the UI into report-viewer mode.
+
+## 4. Detailed Module Map & Core APIs
+* **`bootstrap/setup.sh`**: `check_environment()`, `install_dependencies()`
+* **`app/ingest.py`**: `parse_manifest(manifest_path: str) -> List[AppRecord]`, `read_registry_hives(hive_dir: str) -> RegistryData`
+* **`app/heuristics.py`**: `scan_for_saves(install_path: str) -> List[HeuristicSaveResult]`
+* **`app/db.py`**: `init_db(db_path: str)`, `save_session_data(session: ScanSession)`, `load_session_data(session_id: str)`
+* **`app/state.py`**: `export_snapshot(session_id: str, output_path: str)`, `import_snapshot(snapshot_path: str) -> ScanSession`
+* **`app/ui.py`**: `AppDashboard(tk.Tk)`, `update_treeview(records: List[AppRecord])`, `set_view_mode(mode: str)`
+
+### 4.1 Dependency Graph & Coupling Analysis
+```text
+┌─────────────────────────┐
+│     bootstrap/setup.sh  │ (Infrastructure - Independent)
+└─────────────────────────┘
+
+┌─────────────────────────┐     ┌──────────────────────────┐
+│     app/ingest.py       │     │    app/heuristics.py     │
+└────────────┬────────────┘     └────────────┬─────────────┘
+             │                               │
+             └───────────────┬───────────────┘
+                             ▼
+┌──────────────────────────────────────────────────────────┐
+│                      app/db.py                           │ (Persistence Engine)
+└────────────────────────────┬─────────────────────────────┘
+                             │
+                             ▼
+┌──────────────────────────────────────────────────────────┐
+│                      app/state.py                        │ (Serialization & Snapshot)
+└────────────────────────────┬─────────────────────────────┘
+                             │
+                             ▼
+┌──────────────────────────────────────────────────────────┐
+│                      app/ui.py                           │ (Presentation Layer)
+└──────────────────────────────────────────────────────────┘
+```
+
+## 5. Architectural Patterns & Decoupling Strategies
+* **Observer / Callback Pattern (`NFR-1`):** Background worker threads communicate progress and parsed records back to `app/ui.py` using thread-safe queues (`queue.Queue`) and Tkinter event bindings, ensuring the UI remains non-blocking and responsive.
+* **Data Transfer Objects (DTOs):** Ingestion and heuristic layers pass immutable Python `dataclasses` (`AppRecord`) rather than raw database cursors or UI widgets, enforcing strict boundary encapsulation.
+* **Testability:** All modules are independently testable via `pytest` with mocked filesystem paths and dummy registry hive fixtures, requiring no live root privileges or physical drives during unit testing.
