@@ -13,7 +13,7 @@ The Windows 10 Disaster Recovery Application is a desktop utility designed to as
 * **FR-2: Registry & Manifest Parsing:** Read offline Windows Registry hives (`SOFTWARE`, `SYSTEM`) from the mounted main OS drive and correlate them with the file manifest.
 * **FR-3: Heuristic Local Save Detection:** Scan application home folders for common save/profile nomenclature (`saves`, `profiles`, `userdata`, `.db`, etc.) to flag locally stored user data.
 * **FR-4: Tkinter GUI Dashboard:** Present a structured, sortable list of applications with columns detailing installation metadata, registry status, and local save indicators.
-* **FR-5: Snapshot Export & Viewer Mode:** Enable exporting enumeration results to a text/JSON report and loading existing reports into a read-only viewer mode to prevent redundant long-running scans.
+* **FR-5: Snapshot Export & Viewer Mode:** Enable exporting enumeration results to a structured JSON report (per `DDD.md`) and loading existing reports into a read-only viewer mode to prevent redundant long-running scans.
 
 ## 4. Non-Functional Requirements
 * **NFR-1: Performance & Responsiveness:** Background threading for directory scanning and parsing to keep the Tkinter UI fully responsive.
