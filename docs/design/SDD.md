@@ -24,12 +24,12 @@ The application follows a modular, layered architecture separating system bootst
 ```
 
 ## 2. Module Specifications
-* **`bootstrap/setup.sh`**: Detects execution environment (Conda vs. Live USB), verifies Python/Git/ntfs-3g prerequisites, and installs local dependencies.
-* **`app/ingest.py`**: Handles user drive path inputs, executes `sudo ntfsls -f` when raw partitions are targeted, and reads offline registry hives (`SOFTWARE`, `SYSTEM`).
-* **`app/heuristics.py`**: Implements directory traversal and pattern matching against application folders to flag hidden user save files.
-* **`app/db.py`**: Manages SQLite connection pooling, schema initialization, and transactional persistence based on `docs/design/DDD.md`.
-* **`app/state.py`**: Manages data serialization, exporting enumeration results to snapshot reports, and loading reports into memory.
-* **`app/ui.py`**: Implements the Tkinter GUI, providing treeview tables, progress bars, and mode-switching between active scanning and read-only report viewing.
+* **`setup.sh`**: Detects execution environment (Conda vs. Live USB), verifies Python/Git/ntfs-3g prerequisites, and installs local dependencies.
+* **`src/ingest`**: Handles user drive path inputs, executes `sudo ntfsls -f` when raw partitions are targeted, and reads offline registry hives (`SOFTWARE`, `SYSTEM`).
+* **`src/heuristics.py`**: Implements directory traversal and pattern matching against application folders to flag hidden user save files.
+* **`src/db.py`**: Manages SQLite connection pooling, schema initialization, and transactional persistence based on `docs/design/DDD.md`.
+* **`src/state.py`**: Manages data serialization, exporting enumeration results to snapshot reports, and loading reports into memory.
+* **`src/ui.py`**: Implements the Tkinter GUI, providing treeview tables, progress bars, and mode-switching between active scanning and read-only report viewing.
 
 ## 3. Data Flow & State Management
 1. User provides paths via GUI dialogs.
@@ -38,37 +38,37 @@ The application follows a modular, layered architecture separating system bootst
 4. UI records render; user can export snapshots or reload previous exports to lock the UI into report-viewer mode.
 
 ## 4. Detailed Module Map & Core APIs
-* **`bootstrap/setup.sh`**: `check_environment()`, `install_dependencies()`
-* **`app/ingest.py`**: `parse_manifest(manifest_path: str) -> List[AppRecord]`, `read_registry_hives(hive_dir: str) -> RegistryData`
-* **`app/heuristics.py`**: `scan_for_saves(install_path: str) -> List[HeuristicSaveResult]`
-* **`app/db.py`**: `init_db(db_path: str)`, `save_session_data(session: ScanSession)`, `load_session_data(session_id: str)`
-* **`app/state.py`**: `export_snapshot(session_id: str, output_path: str)`, `import_snapshot(snapshot_path: str) -> ScanSession`
-* **`app/ui.py`**: `AppDashboard(tk.Tk)`, `update_treeview(records: List[AppRecord])`, `set_view_mode(mode: str)`
+* **`setup.sh`**: `check_environment()`, `install_dependencies()`
+* **`src/ingest`**: `parse_manifest(manifest_path: str) -> List[AppRecord]`, `read_registry_hives(hive_dir: str) -> RegistryData`
+* **`src/heuristics.py`**: `scan_for_saves(install_path: str) -> List[HeuristicSaveResult]`
+* **`src/db.py`**: `init_db(db_path: str)`, `save_session_data(session: ScanSession)`, `load_session_data(session_id: str)`
+* **`src/state.py`**: `export_snapshot(session_id: str, output_path: str)`, `import_snapshot(snapshot_path: str) -> ScanSession`
+* **`src/ui.py`**: `AppDashboard(tk.Tk)`, `update_treeview(records: List[AppRecord])`, `set_view_mode(mode: str)`
 
 ### 4.1 Dependency Graph & Coupling Analysis
 ```text
 ┌─────────────────────────┐
-│     bootstrap/setup.sh  │ (Infrastructure - Independent)
+│        setup.sh         │ (Infrastructure - Independent)
 └─────────────────────────┘
 
 ┌─────────────────────────┐     ┌──────────────────────────┐
-│     app/ingest.py       │     │    app/heuristics.py     │
+│        src/ingest       │     │    src/heuristics.py     │
 └────────────┬────────────┘     └────────────┬─────────────┘
              │                               │
              └───────────────┬───────────────┘
                              ▼
 ┌──────────────────────────────────────────────────────────┐
-│                      app/db.py                           │ (Persistence Engine)
+│                      src/db.py                           │ (Persistence Engine)
 └────────────────────────────┬─────────────────────────────┘
                              │
                              ▼
 ┌──────────────────────────────────────────────────────────┐
-│                      app/state.py                        │ (Serialization & Snapshot)
+│                      src/state.py                        │ (Serialization & Snapshot)
 └────────────────────────────┬─────────────────────────────┘
                              │
                              ▼
 ┌──────────────────────────────────────────────────────────┐
-│                      app/ui.py                           │ (Presentation Layer)
+│                      src/ui.py                           │ (Presentation Layer)
 └──────────────────────────────────────────────────────────┘
 ```
 

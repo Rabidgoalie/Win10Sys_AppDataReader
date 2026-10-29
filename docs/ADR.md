@@ -17,5 +17,5 @@
 
 ## ADR-4: Thread-Safe Queue Communication for Asynchronous UI Updates
 * **Context:** Ingestion and heuristic scanning are heavy operations that would freeze the Tkinter GUI if executed on the main thread (`NFR-1`).
-* **Decision:** Execute background tasks in daemon threads communicating back to `app/ui.py` exclusively via `queue.Queue` and thread-safe callbacks.
+* **Decision:** Execute background tasks in daemon threads communicating back to `src/ui.py` exclusively via `queue.Queue` and thread-safe callbacks.
 * **Consequences:** Ensures 60 FPS UI responsiveness and decouples background workers from presentation logic.
