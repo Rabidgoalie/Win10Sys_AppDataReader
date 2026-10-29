@@ -1,0 +1,69 @@
+# ==============================================================================
+# 3D Asset Outputs (Your specific bind mount data)
+# ==============================================================================
+# Ignore the duplicate files copied into your VS Code repo folder
+repo/save_dir/*
+# Keep the folder itself tracked if you want the empty directory structure in Git
+!repo/save_dir/.gitkeep
+
+# Also ignore your dedicated host outputs directory if it sits inside this project
+outputs/*
+!outputs/.gitkeep
+
+# Ignore the images dropped into the `source/Images` directory; keep the folder
+source/Images/*
+!source/Images/.gitkeep
+
+# ==============================================================================
+# Standard Python Rules
+# ==============================================================================
+# Byte-compiled / optimized / DLL files (Equivalent to C# bin/obj folders)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# ==============================================================================
+# Python Virtual Environments (Don't track heavy local dependency folders)
+# ==============================================================================
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# ==============================================================================
+# OS & Editor Specifics
+# ==============================================================================
+.DS_Store
+Thumbs.db
+.vscode/
+.continue/
