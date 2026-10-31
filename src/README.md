@@ -34,7 +34,7 @@ win10-disaster-recovery/
 To ensure smooth integration and adhere to our dependency graph (where lower-level data layers feed higher-level presentation layers), we will implement the modules in the following ordered sequence:
 
 1. **Phase 3.1: Project Scaffolding & Configuration**
-   * **A.** Create `requirements.txt` and `setup.sh`.
+   * **A.** Create `requirements.txt` and `setup.sh`. **(Completed)**
    * **B.** Create `src/models.py` (Core DTOs & Dataclasses).
 2. **Phase 3.2: Persistence & Mount Layers (`src/db.py` & `src/mount_manager.py`)**
    * **A.** Implement SQLite connection management, schema initialization, and transactional queries per `DDD.md`.
