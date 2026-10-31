@@ -19,3 +19,9 @@
 * **Context:** Ingestion and heuristic scanning are heavy operations that would freeze the Tkinter GUI if executed on the main thread (`NFR-1`).
 * **Decision:** Execute background tasks in daemon threads communicating back to `src/ui.py` exclusively via `queue.Queue` and thread-safe callbacks.
 * **Consequences:** Ensures 60 FPS UI responsiveness and decouples background workers from presentation logic.
+
+## ADR-5: Forced Read-Only Isolation via `ntfs-3g` and Auto-Unmount
+* **Context:** By default, Ubuntu 24.04 auto-mounts NTFS partitions using the kernel-level `ntfs3` driver with read-write permissions when accessed via the native file manager (Nautilus). If a user boots a Live Session and clicks their Windows drive out of habit, they risk accidental metadata corruption or journal lockups—especially on a drive that suffered an unclean shutdown from a BSOD.
+* **Decision:** The application will explicitly prohibit operating on native OS-mounted paths. The UI will prompt the user to select raw unmounted block devices (discovered via JSON-parsed `lsblk`). If a selected partition is already mounted by `ntfs3`, the application will programmatically and forcefully unmount it (`sudo umount -l`) and remount it to an isolated, temporary path (`/tmp/win10_recovery`) using `ntfs-3g` with strict read-only and dirty-bypass flags (`-o ro,ro_dirty`).
+* **Consequences:** Eliminates the risk of accidental write operations or kernel-driven filesystem corruption. Aligns with `ADR-2` by hiding technical driver complexities behind an empathetic, single-click UI that handles mounting safely under the hood.
+
