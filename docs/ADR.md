@@ -5,10 +5,10 @@
 * **Decision:** Bypass kernel mounting entirely by executing `sudo ntfsls -f -R <partition>` to generate read-only text manifests, or accept pre-generated manifests.
 * **Consequences:** Ensures 100% non-destructive interaction with damaged partitions; requires user `sudo` authentication only for raw device scanning.
 
-## ADR-2: Dual-Path Deployment via Unified Bootstrap Script (`setup.sh`)
-* **Context:** Advanced users prefer isolated Conda environments on existing Linux hosts, while non-technical users require a zero-friction Live USB session.
-* **Decision:** Implement a single `setup.sh` script that detects the runtime environment and installs dependencies locally without altering global host packages.
-* **Consequences:** Balances developer flexibility with accessible end-user recovery paths.
+## ADR-2: Unified Virtual Environment Deployment via `setup.sh`
+* **Context:** Users facing catastrophic "Inaccessible Boot Device" failures are often in a high state of anxiety and stress, making them vulnerable to blindly approving automated system modifications that could risk their dual-boot host integrity (if applicable).
+* **Decision:** Implement a single `setup.sh` script that provisions an isolated local `.venv` virtual environment. For host-level system utilities (such as `python3-venv` or `ntfs-3g` for `ntfsls`), the script must *never* automatically install packages or prompt for blind confirmation. Instead, it must print a clear, empathetic explanation of why the tool is pausing, provide exact manual instructions, and safely exit to prevent compounding the user's stressful situation.
+* **Consequences:** Prioritizes user safety and system caution over convenience, protecting vulnerable users from making destructive host-system decisions under duress.
 
 ## ADR-3: Snapshot Caching and Read-Only Report Viewer Mode
 * **Context:** Application enumeration and heuristic scanning are time-consuming operations that users should not have to repeat.

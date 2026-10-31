@@ -24,7 +24,7 @@ The application follows a modular, layered architecture separating system bootst
 ```
 
 ## 2. Module Specifications
-* **`setup.sh`**: Environment bootstrap orchestrator. Detects execution context (Conda vs. bare host), verifies prerequisites (`git`, `python3.12`, `ntfs-3g`), and installs local Python dependencies. Restricts system-level package installation (e.g., `ntfs-3g`) strictly to verified Ubuntu 24.04 Live USB sessions and requires explicit user confirmation after displaying a warning against bare host modifications.
+* **`setup.sh`**: Environment bootstrap orchestrator. Detects execution context, verifies prerequisites (`git`, `python3.12`, `python3-venv`, `ntfs-3g`), and provisions an isolated local `.venv` virtual environment. To protect anxious users from accidentally damaging dual-boot host systems under stress, the script strictly avoids automated `apt-get` installations or interactive "Y/N" prompts for system packages. If required host tools (`python3-venv` or `ntfs-3g`) are missing, it provides clear, empathetic guidance with exact manual commands and safely exits.
 * **`src/ingest/`**: Package containing ingestion modules: `manifest_parser.py` for `ntfsls` text output reading (`ADR-1`) and `registry_parser.py` for offline Windows `SOFTWARE`/`SYSTEM` hive parsing.
 * **`src/heuristics.py`**: Implements directory traversal and pattern matching against application folders to flag hidden user save files.
 * **`src/db.py`**: Manages SQLite connection pooling, schema initialization, and transactional persistence based on `docs/design/DDD.md`.
