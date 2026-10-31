@@ -24,7 +24,8 @@ The application follows a modular, layered architecture separating system bootst
 ```
 
 ## 2. Module Specifications
-* **`setup.sh`**: Environment bootstrap orchestrator. Detects execution context, verifies prerequisites (`git`, `python3.12`, `python3-venv`, `ntfs-3g`), and provisions an isolated local `.venv` virtual environment. To protect anxious users from accidentally damaging dual-boot host systems under stress, the script strictly avoids automated `apt-get` installations or interactive "Y/N" prompts for system packages. If required host tools (`python3-venv` or `ntfs-3g`) are missing, it provides clear, empathetic guidance with exact manual commands and safely exits.
+* **`setup.sh`**: Environment bootstrap orchestrator. Detects execution context, verifies prerequisites (`git`, `python3.12`, `python3-venv`, `ntfs-3g`), and provisions an isolated local `venv` virtual environment. Per `ADR-2`, it strictly avoids automated system package installation and will safely exit with clear manual instructions if prerequisites are missing.
+* **`src/mount_manager.py`**: Handles raw block device discovery (`lsblk`), programmatic auto-unmounting (`sudo umount -l`), and isolated read-only remounting (`sudo mount -t ntfs-3g -o ro,ro_dirty`) to a secure temporary directory (`/tmp/win10_recovery`) per `ADR-5`.
 * **`src/ingest/`**: Package containing ingestion modules: `manifest_parser.py` for `ntfsls` text output reading (`ADR-1`) and `registry_parser.py` for offline Windows `SOFTWARE`/`SYSTEM` hive parsing.
 * **`src/heuristics.py`**: Implements directory traversal and pattern matching against application folders to flag hidden user save files.
 * **`src/db.py`**: Manages SQLite connection pooling, schema initialization, and transactional persistence based on `docs/design/DDD.md`.
@@ -40,6 +41,7 @@ The application follows a modular, layered architecture separating system bootst
 
 ## 4. Detailed Module Map & Core APIs
 * **`setup.sh`**: `check_environment()`, `install_dependencies()`
+* **`src/mount_manager.py`**: `list_block_devices()`, `ensure_safe_mount(device_path: str) -> str`
 * **`src/ingest/manifest_parser.py`**: `parse_manifest(manifest_path: str) -> List[AppRecord]`
 * **`src/ingest/registry_parser.py`**: `read_registry_hives(hive_dir: str) -> RegistryData`
 * **`src/heuristics.py`**: `scan_for_saves(install_path: str) -> List[HeuristicSaveResult]`
@@ -55,10 +57,16 @@ The application follows a modular, layered architecture separating system bootst
 └─────────────────────────┘
 
 ┌─────────────────────────┐     ┌──────────────────────────┐
-│        src/ingest       │     │    src/heuristics.py     │
+│   src/mount_manager.py  │     │    src/heuristics.py     │
 └────────────┬────────────┘     └────────────┬─────────────┘
              │                               │
-             └───────────────┬───────────────┘
+             ├───────────────┬───────────────┘
+             │               ▼
+             │   ┌──────────────────────────────────────────┐
+             │   │                src/ingest                │
+             │   └───────────────────┬──────────────────────┘
+             │                       │
+             └───────────────┬───────┘
                              ▼
 ┌──────────────────────────────────────────────────────────┐
 │                      src/db.py                           │ (Persistence Engine)
@@ -67,6 +75,11 @@ The application follows a modular, layered architecture separating system bootst
                              ▼
 ┌──────────────────────────────────────────────────────────┐
 │                      src/state.py                        │ (Serialization & Snapshot)
+└────────────────────────────┬─────────────────────────────┘
+                             │
+                             ▼
+┌──────────────────────────────────────────────────────────┐
+│                   src/coordinator.py                     │ (Async Queue Orchestrator)
 └────────────────────────────┬─────────────────────────────┘
                              │
                              ▼
