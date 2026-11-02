@@ -1,88 +1,295 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 VENV_NAME="Win10DRBPythonVenv"
+REQUIRED_PYTHON="3.12.3"
 
-echo "=== Windows 10 Disaster Recovery Bootstrap (ADR-2) ==="
+echo "=== Windows 10 Disaster Recovery Bootstrap ==="
+echo ""
 
-# Check for optional system utilities in Linux / Live USB context
-if [ "$(uname)" = "Linux" ]; then
-    if ! command -v ntfsls &> /dev/null && ! dpkg -s ntfs-3g &> /dev/null; then
-        echo ""
-        echo "===================================================================="
-        echo "CAUTION: 'ntfs-3g' was not detected on this system."
-        echo "Per our safety guarantees (ADR-1 & ADR-5), we use 'ntfs-3g' with strict"
-        echo "read-only and dirty-bypass flags (-o ro,ro_dirty) to guarantee your"
-        echo "damaged Windows partition remains 100% untouched and protected from"
-        echo "accidental writes or metadata corruption."
-        echo ""
-        echo "To help you safely proceed without risking your data, please install it:"
-        echo "  sudo apt-get update && sudo apt-get install -y ntfs-3g"
-        echo "===================================================================="
-        echo ""
-        exit 1
-    fi
-    
-    # Verify core mounting utilities required by ADR-5 mount manager
-    if ! command -v mount &> /dev/null || ! command -v umount &> /dev/null; then
-        echo "Error: Required system mounting utilities ('mount' / 'umount') are missing." >&2
-        exit 1
-    fi
-else
+# ----------------------------------------------------------------------------
+# 1. Operating system check
+# ----------------------------------------------------------------------------
+
+if [ "$(uname -s)" != "Linux" ]; then
     echo ""
     echo "===================================================================="
-    echo "ERROR: Unsupported Operating System ($(uname))."
-    echo "This application requires a Linux environment (specifically Ubuntu 24.04"
-    echo "Live USB or compatible Linux installation) to safely parse raw NTFS"
-    echo "partitions and offline Windows registry hives without kernel mounting."
+    echo "ERROR: Unsupported operating system ($(uname -s))."
     echo ""
-    echo "Please create an Ubuntu 24.04 Live USB bootable drive, boot into it,"
-    echo "and run this setup script from there."
+    echo "This application requires a Linux environment."
+    echo ""
+    echo "The recommended environment is an Ubuntu 24.04 Live Session."
+    echo "Pop!_OS 24.04 and compatible Linux systems are also supported."
     echo "===================================================================="
     echo ""
     exit 1
 fi
 
-# Check for Python 3.12+
-if ! command -v python3 &> /dev/null; then
-    echo "Error: python3 is required but not installed." >&2
+if [ -r /etc/os-release ]; then
+    # shellcheck disable=SC1091
+    . /etc/os-release
+
+    case "${PRETTY_NAME:-}" in
+        *Ubuntu\ 24.04*|*Pop!\_OS\ 24.04*)
+            ;;
+        *)
+            echo "Notice: Detected Linux distribution: ${PRETTY_NAME:-unknown}"
+            echo "This application is primarily designed for Ubuntu 24.04 Live Sessions."
+            echo "Proceeding, but compatibility may vary."
+            echo ""
+            ;;
+    esac
+fi
+
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# ----------------------------------------------------------------------------
+# 2. Python check
+# ----------------------------------------------------------------------------
+
+if ! command_exists python3; then
+    echo ""
+    echo "ERROR: python3 is required but was not found."
+    echo ""
+    echo "This application requires Python ${REQUIRED_PYTHON} exactly."
+    echo "Ubuntu 24.04 provides this version by default."
+    echo ""
     exit 1
 fi
 
-PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
-echo "Detected Python version: $PYTHON_VERSION"
+if ! python3 -c 'import sys; sys.exit(0 if sys.version_info[:3] == (3, 12, 3) else 1)'; then
+    DETECTED_PYTHON_VERSION="$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:3])))')"
+    echo ""
+    echo "ERROR: Unsupported Python version: ${DETECTED_PYTHON_VERSION}"
+    echo ""
+    echo "This application requires Python ${REQUIRED_PYTHON} exactly."
+    echo "Ubuntu 24.04 provides Python ${REQUIRED_PYTHON} by default."
+    echo ""
+    exit 1
+fi
 
-# Check for python3-venv support (required for creating isolated environments)
-if ! python3 -c "import venv" &> /dev/null; then
+echo "Detected supported Python version: ${REQUIRED_PYTHON}"
+
+if ! python3 -c "import venv" >/dev/null 2>&1; then
     echo ""
-    echo "Notice: Python virtual environment support ('python3-venv') is required but not installed."
-    echo "To protect potential dual-boot host systems, and maintain strict safety, this script will"
-    echo "not automatically install system packages."
+    echo "ERROR: Python virtual environment support is missing."
     echo ""
-    echo "Please install it manually by running:"
+    echo "This application isolates its Python packages inside a local virtual"
+    echo "environment to avoid polluting your host system."
+    echo ""
+    echo "Please install python3-venv manually, then re-run ./setup.sh."
+    echo ""
+    echo "On Ubuntu/Debian-based systems:"
     echo "  sudo apt-get update && sudo apt-get install -y python3-venv"
     echo ""
-    echo "Once installed, please re-run './setup.sh'."
     exit 1
 fi
 
-# Set up local virtual environment (.venv)
+if ! python3 -c "import tkinter" >/dev/null 2>&1; then
+    echo ""
+    echo "ERROR: Tkinter is required but was not found."
+    echo ""
+    echo "Tkinter provides this application's graphical interface."
+    echo ""
+    echo "Please install Tkinter manually, then re-run ./setup.sh."
+    echo ""
+    echo "On Ubuntu/Debian-based systems:"
+    echo "  sudo apt-get update && sudo apt-get install -y python3-tk"
+    echo ""
+    exit 1
+fi
+
+# ----------------------------------------------------------------------------
+# 3. Required system commands
+# ----------------------------------------------------------------------------
+
+MISSING_SYSTEM_COMMANDS=()
+
+for required_command in sudo lsblk mount umount; do
+    if ! command_exists "$required_command"; then
+        MISSING_SYSTEM_COMMANDS+=("$required_command")
+    fi
+done
+
+if [ "${#MISSING_SYSTEM_COMMANDS[@]}" -gt 0 ]; then
+    echo ""
+    echo "ERROR: Required system commands are missing:"
+    echo ""
+    for missing_command in "${MISSING_SYSTEM_COMMANDS[@]}"; do
+        echo "  - $missing_command"
+    done
+    echo ""
+    echo "These commands are required for safe drive discovery and read-only"
+    echo "mount handling."
+    echo ""
+    echo "Please install them manually, then re-run ./setup.sh."
+    echo ""
+    exit 1
+fi
+
+# ----------------------------------------------------------------------------
+# 4. ntfs-3g tool checks
+# ----------------------------------------------------------------------------
+
+find_tool() {
+    local tool_name="$1"
+
+    if command_exists "$tool_name"; then
+        command -v "$tool_name"
+        return 0
+    fi
+
+    local candidate_dir
+    for candidate_dir in /sbin /usr/sbin /usr/local/sbin; do
+        if [ -x "${candidate_dir}/${tool_name}" ]; then
+            echo "${candidate_dir}/${tool_name}"
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+MISSING_NTFS_TOOLS=()
+PATH_ONLY_NTFS_TOOLS=()
+
+for ntfs_tool in ntfsls ntfs-3g mount.ntfs-3g; do
+    if tool_path="$(find_tool "$ntfs_tool")"; then
+        if ! command_exists "$ntfs_tool"; then
+            PATH_ONLY_NTFS_TOOLS+=("$tool_path")
+        fi
+    else
+        MISSING_NTFS_TOOLS+=("$ntfs_tool")
+    fi
+done
+
+if [ "${#MISSING_NTFS_TOOLS[@]}" -gt 0 ]; then
+    echo ""
+    echo "===================================================================="
+    echo "CAUTION: Required ntfs-3g tooling was not detected."
+    echo ""
+    echo "This application uses ntfs-3g and ntfsls to keep your damaged"
+    echo "Windows drives read-only and protected from accidental writes."
+    echo ""
+    echo "Missing tools:"
+    for missing_tool in "${MISSING_NTFS_TOOLS[@]}"; do
+        echo "  - $missing_tool"
+    done
+    echo ""
+    echo "Please install ntfs-3g manually, then re-run ./setup.sh."
+    echo ""
+    echo "On Ubuntu/Debian-based systems:"
+    echo "  sudo apt-get update && sudo apt-get install -y ntfs-3g"
+    echo "===================================================================="
+    echo ""
+    exit 1
+fi
+
+if [ "${#PATH_ONLY_NTFS_TOOLS[@]}" -gt 0 ]; then
+    PATH_DIRECTORIES=()
+
+    for tool_path in "${PATH_ONLY_NTFS_TOOLS[@]}"; do
+        tool_directory="$(dirname "$tool_path")"
+
+        case " ${PATH_DIRECTORIES[*]:-} " in
+            *" $tool_directory "*)
+                ;;
+            *)
+                PATH_DIRECTORIES+=("$tool_directory")
+                ;;
+        esac
+    done
+
+    PATH_ADDITION=""
+    for tool_directory in "${PATH_DIRECTORIES[@]}"; do
+        if [ -z "$PATH_ADDITION" ]; then
+            PATH_ADDITION="$tool_directory"
+        else
+            PATH_ADDITION="${PATH_ADDITION}:${tool_directory}"
+        fi
+    done
+
+    echo ""
+    echo "===================================================================="
+    echo "CAUTION: Required ntfs-3g tools were found, but they are not in"
+    echo "your current PATH."
+    echo ""
+    echo "These tools are critical because they allow the application to"
+    echo "enumerate and mount NTFS drives in a safe, read-only manner."
+    echo ""
+    echo "If these tools are missing from PATH, the application cannot"
+    echo "reliably protect your drives from accidental writes."
+    echo ""
+    echo "Required tools were found in these directories:"
+    echo ""
+    for tool_directory in "${PATH_DIRECTORIES[@]}"; do
+        echo "  $tool_directory"
+    done
+    echo ""
+    echo "Add the following line to your ~/.profile or ~/.bashrc file:"
+    echo ""
+    echo "  export PATH=\"${PATH_ADDITION}:\$PATH\""
+    echo ""
+    echo "Then log out and log back in, or run:"
+    echo ""
+    echo "  source ~/.profile"
+    echo ""
+    echo "After that, re-run ./setup.sh."
+    echo "===================================================================="
+    echo ""
+    exit 1
+fi
+
+echo "Detected required ntfs-3g tooling."
+
+# ----------------------------------------------------------------------------
+# 5. Virtual environment setup
+# ----------------------------------------------------------------------------
+
 if [ -d "$VENV_NAME" ]; then
-    echo "Local virtual environment (.venv) already exists."
+    echo "Reusing existing virtual environment: $VENV_NAME"
 else
-    echo "Creating isolated local virtual environment (.venv)..."
+    echo "Creating isolated virtual environment: $VENV_NAME"
     python3 -m venv "$VENV_NAME"
 fi
 
-# Activate virtual environment and upgrade pip
-echo "Activating virtual environment and installing application dependencies safely inside .venv..."
+# shellcheck disable=SC1091
 source "$VENV_NAME/bin/activate"
-pip install --upgrade pip
-pip install -r requirements.txt
 
+echo "Installing runtime Python dependencies into the virtual environment..."
+echo "A working internet connection is required for this step."
+echo ""
+
+if ! python -m pip install --upgrade pip; then
+    echo ""
+    echo "ERROR: Failed to upgrade pip."
+    echo ""
+    echo "A working internet connection is required during setup."
+    echo "Please check your network connection and re-run ./setup.sh."
+    echo ""
+    exit 1
+fi
+
+if ! python -m pip install -r requirements.txt; then
+    echo ""
+    echo "ERROR: Failed to install Python dependencies."
+    echo ""
+    echo "A working internet connection is required during setup."
+    echo "Please check your network connection and re-run ./setup.sh."
+    echo ""
+    exit 1
+fi
+
+echo ""
 echo "=== Bootstrap Complete ==="
-echo "To activate your environment for future sessions, run:"
-echo "  source $VENV_NAME/bin/activate"
+echo ""
+echo "To activate the environment in future terminal sessions, run:"
+echo ""
+echo "  source ${VENV_NAME}/bin/activate"
 echo ""
 echo "To start the application, run:"
+echo ""
 echo "  python src/main.py"
+echo ""
