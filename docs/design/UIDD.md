@@ -82,9 +82,9 @@ Each source row shall show:
   - Ready.
   - Error.
 
-The panel shall avoid exposing raw technical details unless the user opens source details.
+The panel shall avoid exposing raw technical details.
 
-The user shall not be required to type device paths manually unless necessary.
+The user shall not be required to type device paths manually.
 
 ## 3. Secondary Drive Advisory
 
