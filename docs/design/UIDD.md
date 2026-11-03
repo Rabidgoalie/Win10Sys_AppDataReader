@@ -106,7 +106,7 @@ The main grid shall remain simple.
 
 Default columns:
 
-- Confirmed (Checkbox).
+- Confirmed (Checkbox), in TRIAGE mode.
 - Application.
 - Version.
 - Source.
@@ -176,7 +176,7 @@ For a user-data finding, the details pane shall show:
 
 The details pane shall not display file contents.
 
-For a user-data finding, the details pane shall include a "User Triage" section containing:
+For a user-data finding, while the application is in TRIAGE-mode, the details pane shall include a "User Triage" section containing:
 
 * A checkbox to confirm the finding.
 * A multi-line text area for user notes.
@@ -195,7 +195,7 @@ Examples:
 Status: Ready. 2 sources added.
 Status: Scanning Windows registry...
 Status: Completed. 42 applications, 9 potential user-data findings.
-Status: Report loaded. Viewer mode.
+Status: Report loaded. Triage mode.
 ```
 
 The status bar shall support tooltips that provide expanded detail.
@@ -272,7 +272,7 @@ Behavior:
 - [ ] Amber and red warning colors meet contrast requirements against the surface background.
 - [ ] The source list remains usable at minimum window size 800x600.
 - [ ] The advisory banner remains readable when the window is resized.
-- [ ] Viewer mode clearly disables active controls.
+- [ ] TRIAGE mode clearly disables active controls.
 - [ ] The status bar remains one line.
 - [ ] Expanded status details are available through tooltips.
 - [ ] Long paths are truncated gracefully with tooltips or details-pane access.
