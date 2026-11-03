@@ -143,6 +143,7 @@ Recommended filters:
 - High Risk.
 - Outside Documents.
 - Specific user profile.
+- Confirmed (in TRIAGE mode)
 
 ## 5. Details Pane
 
