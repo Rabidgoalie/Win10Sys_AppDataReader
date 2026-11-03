@@ -88,7 +88,7 @@ Findings may be associated with an application, a user profile, both, or neither
 | session_id | VARCHAR(36) | PRIMARY KEY | Unique session identifier. |
 | schema_version | VARCHAR(16) | NOT NULL | Database/report schema version. |
 | created_at | TIMESTAMP | NOT NULL | Session creation time. |
-| mode | VARCHAR(20) | NOT NULL, CHECK mode IN ('active', 'viewer') | Session mode. |
+| mode | VARCHAR(20) | NOT NULL, CHECK mode IN ('active', 'triage') | Session mode. |
 | status | VARCHAR(20) | NOT NULL, CHECK status IN ('pending', 'running', 'completed', 'failed', 'cancelled') | Session state. |
 | scan_options_json | TEXT | NULL | Enabled evidence and heuristic options. |
 
@@ -273,6 +273,8 @@ UNIQUE(app_id, evidence_id)
 | confidence | TEXT | NOT NULL, CHECK confidence IN ('Low', 'Medium', 'High') | Confidence. |
 | rationale | TEXT | NOT NULL | Human-readable explanation. |
 | created_at | TIMESTAMP | NOT NULL | Finding creation time. |
+| user_confirmed | INTEGER | NULL, CHECK user_confirmed IS NULL OR user_confirmed IN (0, 1) | User's triage state: `1` = Confirmed, `0` or `NULL` = Unconfirmed. |
+| user_notes | TEXT | NULL | Free-text notes added by the user during triage. |
 
 Supported `location_category` values include:
 
