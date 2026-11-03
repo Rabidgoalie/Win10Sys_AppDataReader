@@ -59,27 +59,23 @@ The script shall not automatically install host-level system packages. If requir
 
 Setup remains simple and isolated. Users are protected from accidental host-package pollution. Non-technical users receive explicit guidance instead of silent failures.
 
-## ADR-3: Report Caching and Read-Only Report Viewer Mode
+## ADR-3: Report Caching and Triage Mode
 
 ### Context
 
-Scanning can be time-consuming. Users should not be forced to repeat long scans merely to review results.
-
-Users also need a safe way to review previous results without risking accidental re-scans or drive operations.
+Scanning can be time-consuming. Users should not be forced to repeat long scans merely to review results. Reviewing hundreds of potential user-data findings often requires multiple sessions over several days. Users need a safe way to resume their triage work without risking accidental re-scans or drive operations.
 
 ### Decision
 
 The application shall support exporting scan results to a structured JSON report.
-
-The application shall support loading a report in a read-only viewer mode.
-
-The report shall include the full evidence package: sources, user profiles, application records, evidence records, evidence links, user-data findings, warnings, and schema version.
-
+The application shall support loading a report in "Triage Mode".
+In Triage Mode, the application's internal SQLite database becomes mutable *only* for the `user_confirmed` and `user_notes` fields of `USER_DATA_FINDING` records. No scanned source drives are written to.
+The report shall include the full evidence package and the current triage state.
 The report shall not include file contents.
 
 ### Consequences
 
-Users can review results repeatedly. The UI can clearly distinguish active scanning from report viewing. The application avoids unnecessary re-scans and reduces user stress.
+Users can safely close the application and resume their manual review days later by loading the JSON report. The UI clearly distinguishes active scanning from triage. The application avoids unnecessary re-scans, reduces user stress, and maintains strict read-only safety for the actual source drives.
 
 ## ADR-4: Thread-Safe Queue Communication for Asynchronous UI Updates
 
