@@ -1,87 +1,264 @@
-### 1. Python Project Directory Structure
+# Source Directory README
+
+## 1. Python Project Directory Structure
 
 ```text
 win10-disaster-recovery/
-├── setup.sh                   # Root bootstrap script (ADR-2)
-├── requirements.txt           # Python dependencies
-├── README.md                  # Project goals, setup, and execution guide
+├── setup.sh                        # Bootstrap script
+├── requirements.txt                # Runtime Python dependencies
+├── requirements-dev.txt            # Development/testing dependencies
+├── README.md                       # Root project README
 ├── src/
 │   ├── __init__.py
-│   ├── models.py              # DTOs / Dataclasses (AppRecord, ScanSession, etc.)
-│   ├── mount_manager.py       # Block device discovery & safe read-only mounting (ADR-5)
-│   ├── db.py                  # SQLite persistence & connection pooling (DDD.md)
+│   ├── main.py                     # Application entry point
+│   ├── models.py                   # DTOs / dataclasses
+│   ├── pathnorm.py                 # Windows/offline path normalization
+│   ├── mount_manager.py            # Block device discovery and safe mounting
+│   ├── db.py                       # SQLite persistence
+│   ├── state.py                    # Report export/import
+│   ├── coordinator.py              # Background worker coordinator
+│   ├── ui.py                       # Tkinter presentation layer
+│   ├── correlator.py               # Evidence-to-application correlation
+│   ├── config/
+│   │   ├── __init__.py
+│   │   ├── evidence_locations.py   # Supported evidence roots
+│   │   └── heuristic_patterns.py   # Heuristic and exclusion patterns
 │   ├── ingest/
 │   │   ├── __init__.py
-│   │   ├── manifest_parser.py # ntfsls manifest reader (ADR-1)
-│   │   └── registry_parser.py # Offline SOFTWARE/SYSTEM hive parser
-│   ├── heuristics.py          # Local save directory detection & pattern matching
-│   ├── state.py               # Snapshot export & JSON/SQLite report hydration (ADR-3)
-│   ├── coordinator.py         # Background worker thread & queue coordinator (ADR-4)
-│   ├── ui.py                  # Tkinter Presentation layer & dashboard (UIDD.md)
-│   ├── main.py                # Application entry point
-│   └── README.md              # YOU ARE HERE!
+│   │   ├── manifest_generator.py   # ntfsls manifest generation
+│   │   ├── manifest_parser.py      # ntfsls manifest reader
+│   │   ├── hive_locator.py         # Hive file discovery
+│   │   ├── registry_parser.py      # Offline registry evidence parser
+│   │   ├── user_profile_parser.py  # User profile and Documents resolution
+│   │   └── portable_scanner.py     # Portable application discovery
+│   └── heuristics/
+│       ├── __init__.py
+│       ├── user_data_classifier.py # Potential user-data classification
+│       └── exclusions.py           # False-positive exclusions
 └── tests/
     ├── __init__.py
-    ├── test_ingest.py         # Mocked tests for manifest & registry parsing
-    ├── test_heuristics.py     # Mocked tests for save directory matching
-    └── test_db.py             # SQLite persistence unit tests
+    ├── test_mount_manager.py
+    ├── test_pathnorm.py
+    ├── test_manifest_parser.py
+    ├── test_registry_parser.py
+    ├── test_user_profile_parser.py
+    ├── test_portable_scanner.py
+    ├── test_correlator.py
+    ├── test_user_data_classifier.py
+    ├── test_db.py
+    └── test_state.py
 ```
 
----
+## 2. Implementation Roadmap
 
-### 2. Implementation Roadmap (Execution Order)
+### Phase 1: Scaffolding and Core Models
 
-To ensure smooth integration and adhere to our dependency graph (where lower-level data layers feed higher-level presentation layers), we will implement the modules in the following ordered sequence:
+- `setup.sh`
+- `requirements.txt`
+- `requirements-dev.txt`
+- `src/models.py`
+- `src/pathnorm.py`
+- configuration modules
 
-1. **Phase 3.1: Project Scaffolding & Configuration**
-   * **A.** Create `requirements.txt` and `setup.sh`. **(Completed)**
-   * **B.** Create `src/models.py` (Core DTOs & Dataclasses).
-2. **Phase 3.2: Persistence & Mount Layers (`src/db.py` & `src/mount_manager.py`)**
-   * **A.** Implement SQLite connection management, schema initialization, and transactional queries per `DDD.md`.
-   * **B.** Implement block device discovery (`lsblk`) and safe read-only mounting (`ntfs-3g` / `umount -l`) per `ADR-5`.
-3. **Phase 3.3: Ingestion & Heuristic Engines (`src/ingest/` & `src/heuristics.py`)**
-   * **A.** Build `manifest_parser.py` (handling `ntfsls` text output).
-   * **B.** Build `registry_parser.py` (parsing offline Windows hives using `regipy`).
-   * **C.** Build `heuristics.py` (scanning installation paths for save nomenclature like `saves`, `profiles`, etc.).
-4. **Phase 3.4: State Manager & Coordinator (`src/state.py` & `src/coordinator.py`)**
-   * **A.** Implement snapshot export/import serialization (`FR-5`, `ADR-3`).
-   * **B.** Implement thread-safe `queue.Queue` communication layer (`NFR-1`, `ADR-4`).
-5. **Phase 3.5: Presentation Layer & Main Entry Point (`src/ui.py` & `src/main.py`)**
-   * Implement the Tkinter Dashboard (`UIDD.md`), master-detail treeview, status indicators, and Report Viewer mode.
-6. **Phase 3.6: Automated Testing (`tests/`)**
-   * Write `pytest` unit tests with mocked fixtures for independent module verification.
+### Phase 2: Persistence and Mount Safety
 
----
+- SQLite schema initialization
+- source persistence
+- block device discovery
+- safe read-only mounting
+- mount cleanup handlers
+- confirmation flow for already-mounted partitions
 
-### 2.1. Technical Debt & Edge Cases to Monitor During Implementation
+### Phase 3: Evidence Ingestion
 
-1. **Orphaned Mount Point Cleanup:** 
-   * *Risk:* If the application crashes during an active scan after mounting a partition to `/tmp/win10_recovery`, the temporary mount point may remain active or locked.
-   * *Mitigation:* Ensure `src/mount_manager.py` implements a robust `atexit` handler or `try...finally` block to unmount and clean up `/tmp/win10_recovery` gracefully upon exit.
-2. **`lsblk` JSON Output Variations:**
-   * *Risk:* Different versions of util-linux (`lsblk`) across Linux distributions may output slightly varying JSON structures.
-   * *Mitigation:* Explicitly pass `--json` and `--output NAME,FSTYPE,SIZE,MOUNTPOINTS,LABEL` flags to `lsblk`, and write defensive parsing keys in `src/mount_manager.py`.
-3. **Registry Hive Permission Locking:**
-   * *Risk:* Offline `SOFTWARE` and `SYSTEM` hives might occasionally throw read errors if incomplete journal recovery files (`$LogFile`) are present on dirty NTFS partitions.
-   * *Mitigation:* Ensure `src/ingest/registry_parser.py` gracefully catches `regipy` hive-loading exceptions and flags affected application records as `Unknown` rather than crashing the worker thread.
+- hive locator
+- user profile parser
+- registry evidence parser
+- manifest generator
+- manifest parser
+- portable scanner
 
----
+### Phase 4: Correlation and Heuristics
 
-### 3. Quick Start & Installation
+- evidence correlation
+- fingerprint status assignment
+- portable candidate merging
+- user-data classification
+- Documents baseline comparison
+- Visual Studio source detection
+- exclusion handling
 
-1. **Clone the Repository & Bootstrap Environment:**
-   ```bash
-   chmod +x setup.sh
-   ./setup.sh
-   ```
+### Phase 5: State and Coordination
 
-2. **Run the Application:**
-   ```bash
-   conda activate win10-recovery  # (or activate your python virtual environment)
-   python src/main.py
-   ```
+- report export
+- report import
+- background worker coordinator
+- typed progress events
+- cancellation handling
+- cleanup coordination
 
-3. **Run Unit Tests:**
-   ```bash
-   pytest tests/
-   ```
+### Phase 6: Presentation
+
+- source list panel
+- secondary-drive advisory
+- treeview grid
+- details pane
+- status bar with tooltips
+- report viewer mode
+- export report flow
+
+### Phase 7: Tests
+
+- path normalization tests
+- manifest parser tests
+- registry parser tests with fixture hives
+- user profile parser tests
+- portable scanner tests
+- correlator tests
+- user-data classifier tests
+- database tests
+- report round-trip tests
+
+## 3. Quick Start
+
+1. Download the project ZIP file and extract it.
+2. Open a terminal in the extracted directory.
+3. Run:
+
+```bash
+chmod +x setup.sh
+./setup.sh
+```
+
+4. Activate the virtual environment:
+
+```bash
+source Win10DRBPythonVenv/bin/activate
+```
+
+5. Run the application:
+
+```bash
+python src/main.py
+```
+
+## 4. Running Tests
+
+Install development dependencies manually into the virtual environment:
+
+```bash
+python -m pip install -r requirements-dev.txt
+```
+
+Run tests:
+
+```bash
+python -m pytest tests/
+```
+
+Run tests with coverage:
+
+```bash
+python -m pytest --cov=src tests/
+```
+
+## 5. Technical Debt and Edge Cases to Monitor
+
+### 5.1 Orphaned Mount Point Cleanup
+
+If the application crashes during an active scan, temporary mounts may remain.
+
+Mitigation:
+
+- Use cleanup handlers.
+- Track all mounted sources.
+- Attempt release on exit, cancellation, and failure.
+
+### 5.2 `lsblk` JSON Variations
+
+Different util-linux versions may vary slightly.
+
+Mitigation:
+
+- Explicitly request required fields.
+- Parse defensively.
+
+### 5.3 Registry Hive Damage
+
+Offline hives may be corrupted or incomplete.
+
+Mitigation:
+
+- Catch hive-loading exceptions.
+- Record warnings.
+- Continue processing other evidence where possible.
+
+### 5.4 SYSTEM Control Set Resolution
+
+Offline `SYSTEM` hive parsing must resolve the active control set from `SYSTEM\Select`.
+
+Mitigation:
+
+- Implement explicit control-set resolution.
+- Do not assume `CurrentControlSet` is directly valid.
+
+### 5.5 WOW6432Node Handling
+
+Windows 10 may store 32-bit application evidence under WOW6432Node paths.
+
+Mitigation:
+
+- Enumerate both native and WOW6432Node locations where applicable.
+
+### 5.6 UserAssist Encoding
+
+UserAssist entries may be ROT13-encoded.
+
+Mitigation:
+
+- Decode carefully and treat results as usage evidence, not installation proof.
+
+### 5.7 AppX and Modern Applications
+
+Modern Windows applications may not map cleanly to traditional uninstall registry keys.
+
+Mitigation:
+
+- Treat AppX evidence as best-effort.
+- Mark confidence appropriately.
+
+### 5.8 OneDrive and Redirected Documents
+
+Documents may be redirected to OneDrive or another custom path.
+
+Mitigation:
+
+- Resolve Documents from user shell folder settings where possible.
+- Mark findings as unknown when the baseline cannot be resolved.
+
+### 5.9 Manifest-Only Metadata Limitations
+
+Manifest files may not provide full metadata.
+
+Mitigation:
+
+- Use path/name heuristics.
+- Lower confidence where size, timestamp, or count data is unavailable.
+
+### 5.10 Visual Studio Source Directories
+
+New developers may not realize that Visual Studio projects are valuable.
+
+Mitigation:
+
+- Check `<UserProfile>\source` and `<UserProfile>\source\repos` for every discovered user profile.
+- Flag non-empty source directories as potential user-generated developer content.
+
+### 5.11 Secondary Drive Oversight
+
+Users may forget to scan secondary drives before wiping them.
+
+Mitigation:
+
+- Show a persistent advisory near the source list.
+- Require the user to add secondary sources manually.
