@@ -538,6 +538,7 @@ The grid shall remain as simple as possible.
 
 Recommended columns:
 
+- Confirmed (Checkbox), when in TRIAGE mode.
 - Application.
 - Version.
 - Source.
@@ -556,6 +557,9 @@ The details pane shall show:
 - Potential user-data findings.
 - Rationale for findings.
 - Warnings.
+- TRIAGE mode
+   - A checkbox to confirm the finding.
+   - A multi-line text area for user notes.
 
 The details pane shall not display file contents.
 
@@ -576,13 +580,8 @@ The UI shall provide:
 
 The UI shall use the word “Report” rather than “Snapshot” in user-facing controls.
 
-#### FR-5.7 Viewer Mode
-
-When a report is loaded, the application shall enter a read-only viewer mode.
-
-In viewer mode, the application shall disable scanning, source acquisition, mounting, manifest generation, and other write-adjacent operations.
-
-The UI shall clearly indicate that it is in report viewer mode.
+#### FR-5.7 Triage Mode
+When a report is loaded, the application shall enter "Triage Mode". In this mode, source acquisition and scanning controls are locked. The user shall be able to toggle the `user_confirmed` state and edit `user_notes` for potential user-data findings. These changes shall be persisted to the internal database.
 
 ### FR-6: Report Export and Viewer Mode
 
@@ -599,19 +598,14 @@ The report shall include:
 - Application records.
 - Evidence records.
 - Application-to-evidence links.
-- User-data findings.
+- User-data findings (including `user_confirmed` and `user_notes` states).
 - Warnings.
 - Scan status.
 
 The report shall not include file contents.
 
 #### FR-6.2 Report Import
-
-The application shall load previously exported reports.
-
-When a report is loaded, the application shall hydrate the UI from the report without rescanning sources.
-
-The report viewer shall preserve read-only behavior.
+When a report is loaded, the application shall hydrate the UI into Triage Mode, restoring all previous triage states and notes without rescanning sources. The application shall preserve read-only behavior toward all source drives.
 
 #### FR-6.3 Report Compatibility
 
