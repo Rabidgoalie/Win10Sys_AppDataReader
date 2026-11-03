@@ -16,7 +16,7 @@ A report export serializes the full evidence package:
 - Warnings.
 - Schema version.
 
-A report import rehydrates those records into a read-only viewer session.
+A report import rehydrates those records into a TRIAGE-mode session.
 
 The database does not store file contents.
 
