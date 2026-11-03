@@ -380,7 +380,7 @@ Responsibilities:
 - Include full evidence package.
 - Load report files.
 - Validate report compatibility.
-- Hydrate viewer-mode data.
+- Hydrate TRIAGE-mode data.
 
 Core APIs:
 
@@ -429,7 +429,7 @@ Responsibilities:
 - Present details pane.
 - Present single-line status bar with tooltips.
 - Support report loading and export.
-- Support viewer mode.
+- Support TRIAGE mode.
 - Update only from queued UI events.
 
 ## 3. Data Flow
