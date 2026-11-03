@@ -92,4 +92,4 @@ The application can export a JSON report.
 
 Reports contain paths, evidence, and findings. They do not contain file contents.
 
-Reports can be loaded later in read-only viewer mode.
+Reports can be loaded later in TRIAGE viewer mode, to allow each file/folder to be marked as "Confirmed" (i.e., marked findings are important and should be manually-recovered).
