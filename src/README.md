@@ -104,7 +104,7 @@ win10-disaster-recovery/
 - treeview grid
 - details pane
 - status bar with tooltips
-- report viewer mode
+- TRIAGE mode
 - export report flow
 
 ### Phase 7: Tests
