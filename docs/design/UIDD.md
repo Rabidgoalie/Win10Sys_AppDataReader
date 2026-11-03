@@ -23,7 +23,7 @@ The application uses a simplified vertical layout:
 ```text
 ┌────────────────────────────────────────────────────────────────────────────┐
 │ Win10 Disaster Recovery Tool                      Mode: ACTIVE SCAN        │
-│ [Add Source] [Remove Source] [Load Report] [Export Report]                 │
+│                                              [Load Report] [Export Report] │
 ├────────────────────────────────────────────────────────────────────────────┤
 │ Important: If you used secondary drives for programs, games, projects,     │
 │ photos, videos, or other personal files, add those drives now.             │
