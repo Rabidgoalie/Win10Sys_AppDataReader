@@ -4,17 +4,17 @@ A free, MIT-licensed Linux utility designed to help users recover from catastrop
 
 The most important goal of this project is to help users find irreplaceable, self-authored files before reinstalling an operating system or wiping a drive.
 
-> **Important Disclaimer on User File Discovery:** While the application utilizes advanced heuristic scanning to locate common user save directories and profile nomenclature (`saves`, `profiles`, `.db`, etc.) within application folders, _**it cannot guarantee the absolute recovery of every user-generated file**_. Custom save locations or non-standard directory structures may require manual user verification. Users should treat scan results as a supportive discovery aid rather than an exhaustive backup guarantee.
+> **Important Disclaimer on User File Discovery:** While the application utilizes advanced heuristic scanning to locate common user save directories and profile nomenclature (`saves`, `profiles`, `.db`, etc.) within application folders, _**it cannot guarantee the discovery of every user-generated file**_. Custom save locations or non-standard directory structures may require manual user verification. Users should treat scan results as a supportive discovery aid rather than an exhaustive guarantee.
 
-The application also builds an inventory of installed applications, portable applications, and orphaned application evidence to help users understand what existed on their Windows installation.
+The application also builds an inventory of installed applications, portable applications, and orphaned application evidence to help users understand what existed on their Windows installation. This will aid the user in reinstalling their applications on a new Windows install, to "restore" their previous computing environment.
 
 ## Important Warning
 
-If your Windows 10 system has failed, do not wipe or format drives until you have scanned them.
+If your Windows 10 system has failed, do not wipe or format drives until you have scanned them. The results of the scan can then be used to manually recover all user-generated data found by the scan, before the installation of an OS. **The application does _not_ recover files for you; you _will_ have to copy these to backup storage media manually.**
 
 If you used secondary drives for programs, games, documents, photos, videos, music, source code, or other personal files, add those drives to the scan as well.
 
-Once a drive is wiped, recovery may become impossible.
+> Once a drive is wiped, data recovery can be very difficult or impossible, outside _very_ expensive data recovery services.
 
 ## Recommended Environment
 
