@@ -29,7 +29,7 @@ The application uses a simplified vertical layout:
 │ photos, videos, or other personal files, add those drives now.             │
 │ Wiping or reinstalling can make data unrecoverable.                        │
 ├────────────────────────────────────────────────────────────────────────────┤
-│ Sources                                                                    │
+│ Sources                                                     [Add] [Remove] │
 │ ┌────────────────────────────────────────────────────────────────────────┐ │
 │ │ /dev/nvme0n1p3   Windows drive   ntfs-3g read-only   Ready             │ │
 │ │ /dev/sdb1        Secondary drive  ntfsls report      Ready             │ │
