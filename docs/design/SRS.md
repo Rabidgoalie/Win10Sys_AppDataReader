@@ -583,7 +583,7 @@ The UI shall use the word “Report” rather than “Snapshot” in user-facing
 #### FR-5.7 Triage Mode
 When a report is loaded, the application shall enter "Triage Mode". In this mode, source acquisition and scanning controls are locked. The user shall be able to toggle the `user_confirmed` state and edit `user_notes` for potential user-data findings. These changes shall be persisted to the internal database.
 
-### FR-6: Report Export and Viewer Mode
+### FR-6: Report Export and Triage Mode
 
 #### FR-6.1 Report Export
 
