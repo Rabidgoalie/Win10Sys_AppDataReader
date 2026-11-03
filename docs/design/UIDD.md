@@ -21,41 +21,46 @@ The application uses a simplified vertical layout:
 - Single-line status bar with tooltips.
 
 ```text
-┌────────────────────────────────────────────────────────────────────────────┐
-│ Win10 Disaster Recovery Tool                      Mode: ACTIVE SCAN        │
-│                                              [Load Report] [Export Report] │
-├────────────────────────────────────────────────────────────────────────────┤
-│ Important: If you used secondary drives for programs, games, projects,     │
-│ photos, videos, or other personal files, add those drives now.             │
-│ Wiping or reinstalling can make data unrecoverable.                        │
-├────────────────────────────────────────────────────────────────────────────┤
-│ Sources                                                     [Add] [Remove] │
-│ ┌────────────────────────────────────────────────────────────────────────┐ │
-│ │ /dev/nvme0n1p3   Windows drive   ntfs-3g read-only   Ready             │ │
-│ │ /dev/sdb1        Secondary drive  ntfsls report      Ready             │ │
-│ └────────────────────────────────────────────────────────────────────────┘ │
-│ [Start Scan]                                                               │
-├────────────────────────────────────────────────────────────────────────────┤
-│ Applications and Potential User Data                     Filter: [All ▾]   │
-│ ┌────────────────────────┬─────────┬─────────────┬──────────────┬────────┐ │
-│ │ Application            │ Version │ Source      │ Status       │ Risk   │ │
-│ ├────────────────────────┼─────────┼─────────────┼──────────────┼────────┤ │
-│ │ Steam Client           │ 2.10.4  │ Windows     │ Registered   │ Low    │ │
-│ │ Cyberpunk 2077         │ 1.63    │ Windows     │ Registered   │ High   │ │
-│ │ Portable Notes         │ n/a     │ Secondary   │ Portable     │ Medium │ │
-│ │ Custom Python Tool     │ 1.0.0   │ Windows     │ Orphaned     │ High   │ │
-│ │ Mozilla Firefox        │ 115.0   │ Windows     │ Registered   │ Low    │ │
-│ └────────────────────────┴─────────┴─────────────┴──────────────┴────────┘ │
-├────────────────────────────────────────────────────────────────────────────┤
-│ Details: Cyberpunk 2077                                                    │
-│ Summary: Registered application found on the Windows drive.                │
-│ Evidence: 9 registry items, 4 filesystem items.                            │
-│ Potential User Data:                                                       │
-│   HIGH: Users\Admin\Saved Games\CD Projekt Red\Cyberpunk 2077              │
-│   Reason: Outside resolved Documents folder and matches saved-game path.   │
-├────────────────────────────────────────────────────────────────────────────┤
-│ Status: Ready. Hover for details.                                          │
-└────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────────────────────┐
+│ Win10 Disaster Recovery Tool                                 Mode: TRIAGE             │
+│                                                         [Load Report] [Export Report] │
+├───────────────────────────────────────────────────────────────────────────────────────┤
+│ Important: If you used secondary drives for programs, games, projects, photos,        |
+| videos, or other personal files, add those drives now.                                │
+│ Wiping or reinstalling will make data unrecoverable.                                  │
+├───────────────────────────────────────────────────────────────────────────────────────┤
+│ Sources                                                                [Add] [Remove] │
+│ ┌───────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ /dev/nvme0n1p3   Windows drive   ntfs-3g read-only   Ready                        │ │
+│ │ /dev/sdb1        Secondary drive  ntfsls report      Ready                        │ │
+│ └───────────────────────────────────────────────────────────────────────────────────┘ │
+│ [Start Scan]                                                                          │
+├───────────────────────────────────────────────────────────────────────────────────────┤
+│ Applications and Potential User Data                                Filter: [All ▾]   │
+│ ┌──────────┬────────────────────────┬─────────┬─────────────┬──────────────┬────────┐ │
+│ │Confirmed │ Application            │ Version │ Source      │ Status       │ Risk   │ │
+│ ├──────────┼────────────────────────┼─────────┼─────────────┼──────────────┼────────┤ │
+│ │   [ ]    │ Steam Client           │ 2.10.4  │ Windows     │ Registered   │ Low    │ │
+│ │   [✓]    │ Cyberpunk 2077         │ 1.63    │ Windows     │ Registered   │ High   │ │
+│ │   [ ]    │ Portable Notes         │ n/a     │ Secondary   │ Portable     │ Medium │ │
+│ │   [ ]    │ Custom Python Tool     │ 1.0.0   │ Windows     │ Orphaned     │ High   │ │
+│ │   [ ]    │ Mozilla Firefox        │ 115.0   │ Windows     │ Registered   │ Low    │ │
+│ └──────────┴────────────────────────┴─────────┴─────────────┴──────────────┴────────┘ │
+├───────────────────────────────────────────────────────────────────────────────────────┤
+│ Details: Cyberpunk 2077                                                               │
+│ Summary: Registered application found on the Windows drive.                           │
+│ Evidence: 9 registry items, 4 filesystem items.                                       │
+│ Potential User Data:                                                                  │
+│   HIGH: Users\Admin\Saved Games\CD Projekt Red\Cyberpunk 2077                         │
+│   Reason: Outside resolved Documents folder and matches saved-game path.              │
+│ ───────────────────────────────────────────────────────────────────────────────────── │
+│ User Triage:                                                                          │
+│ [✓] Confirm this contains my important user data.                                     │
+│ Notes: [ Mom's save files for Cyberpunk. DO NOT DELETE.                         ]     │
+│ (Auto-saves when you click away)                                                      │
+├───────────────────────────────────────────────────────────────────────────────────────┤
+│ Status: Triage Mode. 1 of 5 findings confirmed. Hover for details.                    │
+└───────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## 2. Source List Panel
@@ -101,6 +106,7 @@ The main grid shall remain simple.
 
 Default columns:
 
+- Confirmed (Checkbox).
 - Application.
 - Version.
 - Source.
@@ -168,6 +174,13 @@ For a user-data finding, the details pane shall show:
 - Rationale.
 
 The details pane shall not display file contents.
+
+For a user-data finding, the details pane shall include a "User Triage" section containing:
+
+* A checkbox to confirm the finding.
+* A multi-line text area for user notes.
+
+The application shall automatically save the triage state when the checkbox is toggled, and shall automatically save the notes text when the text area loses focus (blur). No manual save button is required.
 
 ## 6. Status Bar
 
@@ -238,17 +251,17 @@ Behavior:
 - Progress is shown through the status bar and progress indicator.
 - UI updates occur through queue callbacks.
 
-### Report Viewer State
+### Triage Mode State
 
 Triggered by loading a report.
 
 Behavior:
-
-- Source acquisition controls are locked.
-- Scan controls are locked.
-- Mode badge shows `REPORT VIEWER`.
-- The UI hydrates from the report.
-- No drive operations are permitted.
+* Source acquisition controls are locked.
+* Scan controls are locked.
+* Mode badge shows `TRIAGE`.
+* The UI hydrates from the report, including previous `user_confirmed` and `user_notes` states.
+* The user may toggle checkboxes and edit notes for `USER_DATA_FINDING` records.
+* No drive operations are permitted.
 
 ## 9. Accessibility and QA Checklist
 
