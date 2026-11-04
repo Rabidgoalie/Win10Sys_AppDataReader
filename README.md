@@ -16,6 +16,21 @@ If you used secondary drives for programs, games, documents, photos, videos, mus
 
 > Once a drive is wiped, data recovery can be very difficult or impossible, outside _very_ expensive data recovery services.
 
+## Essential Safety Step Before Scanning
+
+Before booting into Linux to use this application, you must verify that your Windows 10 boot failure wasn't caused by a physically dying hard drive. While our software is strictly read-only and designed to "do no harm," running scans on a physically failing drive can cause permanent data loss.
+
+We have written a comprehensive, non-technical, step-by-step guide to help you check your drive health using the built-in Windows Recovery screen. 
+
+> **Please read and follow the [Drive Health Guide](DRIVE_HEALTH_GUIDE.md) before proceeding.**
+
+### A Note on USB Drives and Recovery Media
+To complete a safe recovery, you will need access to two tools:
+1. **Windows Installation Media** (to run the pre-recovery drive health checks if your PC's built-in recovery menu is missing).
+2. **Ubuntu 24.04 Live Session Media** (to run this recovery application).
+
+**You do not need to buy or use two separate physical USB thumb drives.** You can simply flash a single USB drive with the Windows Installer first, use it to complete the [Drive Health Guide](DRIVE_HEALTH_GUIDE.md), and then plug that thumb drive into a working computer to overwrite and re-flash it with the Ubuntu 24.04 installer. 
+
 ## Recommended Environment
 
 The primary recommended environment is:
@@ -92,4 +107,4 @@ The application can export a JSON report.
 
 Reports contain paths, evidence, and findings. They do not contain file contents.
 
-Reports can be loaded later in read-only viewer mode.
+Reports can be loaded later in TRIAGE viewer mode, to allow each file/folder to be marked as "Confirmed" (i.e., marked findings are important and should be manually-recovered).

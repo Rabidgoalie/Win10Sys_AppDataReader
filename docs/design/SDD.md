@@ -18,25 +18,17 @@ The major layers are:
 
 The application is designed so that raw evidence is collected before application correlation occurs. Evidence remains first-class and exportable.
 
-```text
-[ setup.sh ]
-    |
-    v
-[ src/main.py ]
-    |
-    v
-[ src/ui.py ] <--> [ src/coordinator.py ]
-                         |
-                         v
-       +-----------------+-----------------+
-       |                 |                 |
-[ src/mount_manager.py ] [ src/ingest/ ] [ src/correlator.py ]
-                         |                 |
-                         v                 v
-                  [ src/heuristics/ ] [ src/db.py ]
-                                         |
-                                         v
-                                   [ src/state.py ]
+```mermaid
+flowchart TD
+    setup["setup.sh"] --> main["src/main.py"]
+    main --> ui["src/ui.py"]
+    ui <--> coordinator["src/coordinator.py"]
+    coordinator --> mount["src/mount_manager.py"]
+    coordinator --> ingest["src/ingest/"]
+    coordinator --> correlator["src/correlator.py"]
+    ingest --> heuristics["src/heuristics/"]
+    correlator --> db["src/db.py"]
+    db --> state["src/state.py"]
 ```
 
 ## 2. Module Specifications
@@ -380,7 +372,7 @@ Responsibilities:
 - Include full evidence package.
 - Load report files.
 - Validate report compatibility.
-- Hydrate viewer-mode data.
+- Hydrate TRIAGE-mode data.
 
 Core APIs:
 
@@ -429,7 +421,7 @@ Responsibilities:
 - Present details pane.
 - Present single-line status bar with tooltips.
 - Support report loading and export.
-- Support viewer mode.
+- Support TRIAGE mode.
 - Update only from queued UI events.
 
 ## 3. Data Flow
@@ -458,7 +450,7 @@ A full active scan proceeds as follows:
 
 The mount manager is the only component allowed to prepare mounted sources.
 
-No other module may write to a scanned source.
+No module may write to a scanned source.
 
 Manifest generation must write only to safe output paths.
 
