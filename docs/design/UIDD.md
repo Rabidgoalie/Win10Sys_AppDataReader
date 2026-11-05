@@ -373,6 +373,8 @@ Filters:
 - Registered.
 - Portable.
 - Orphaned.
+- Low Risk.
+- Medium Risk.
 - High Risk.
 - Outside Documents.
 - Specific user profile.
@@ -381,7 +383,7 @@ Filters:
 Filter semantics:
 
 - Application-status filters show application rows only.
-- High Risk shows application rows with derived High risk and finding rows with High severity.
+- Risk-level filters (`Low Risk`, `Medium Risk`, `High Risk`) show application rows matching the derived risk level and finding rows matching the corresponding severity level.
 - Outside Documents shows finding rows where `inside_documents` is false.
 - Specific user profile shows finding rows associated with that profile and application rows directly associated with those findings.
 - Confirmed shows confirmed finding rows.
