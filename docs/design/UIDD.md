@@ -611,8 +611,9 @@ The application shall use explicit confirmation for:
 - overwriting an existing report file;
 - overwriting an existing manifest file;
 - replacing the current triage session by loading another report.
+- when the user attempts to close the application (via window close, exit menu, or shortcut), the application shall display a confirmation dialog: *"Are you sure you want to exit? If you have completed a scan or made triage updates, remember to export a fresh Report to preserve your data across sessions."* with actions to `Close App` or `Return to App`.
 
-Confirmation wording shall be calm and non-blaming.
+Confirmation wording shall be calm, clear, and non-blaming. To prevent accidental data loss, dialog buttons shall feature distinct visual separation. The safest outcome (e.g., `Return to App`) shall be designated as the primary default button and positioned on the bottom right of the dialog. This ensures that reflexive clicks or accidental `Enter` keypresses default to keeping the application open.
 
 ---
 
