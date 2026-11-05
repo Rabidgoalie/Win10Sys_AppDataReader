@@ -1,6 +1,4 @@
-# Database Design Document (DDD)
-
-## Windows 10 Disaster Recovery Application
+# Database Design Document (DDD): Windows 10 Disaster Recovery Application
 
 ## 1. Storage Strategy
 
