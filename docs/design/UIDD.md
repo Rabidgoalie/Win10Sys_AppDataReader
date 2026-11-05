@@ -81,7 +81,45 @@ This is the main pre-scan review screen in active mode.
 - The status bar shows a user-facing readiness summary rather than exposing internal session-state terminology.
 - The main Windows drive has been added; the secondary data drive has not yet been added.
 
-#### 2.1.2 ACTIVE-Mode Post-Scan
+#### 2.1.2 ACTIVE-Mode Scanning State Snippet
+
+```text
+┌───────────────────────────────────────────────────────────────────────────────────────┐
+│ Win10 Disaster Recovery Tool                                            Mode: ACTIVE  │
+│                                                         [Load Locked] [Export Locked] │
+├───────────────────────────────────────────────────────────────────────────────────────┤
+│ Important: If you used secondary drives for programs, games, projects, photos,        │
+│ videos, or other personal files, add those drives now. Wiping or reinstalling can     │
+│ make data unrecoverable.                                                              │
+├───────────────────────────────────────────────────────────────────────────────────────┤
+│ Sources                                                                   [Locked]    │
+│ ┌───────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ Windows drive (512 GB)    Windows drive    ntfs-3g read-only    Ready             │ │
+│ │ Data drive (1 TB)         Secondary drive  ntfsls report        Ready             │ │
+│ └───────────────────────────────────────────────────────────────────────────────────┘ │
+│ [Start Scan: unavailable] [Cancel Scan]                                               │
+├───────────────────────────────────────────────────────────────────────────────────────┤
+|                                                                                       |
+~                                                                                       ~
+
+...UI Elements omitted for brevity...
+
+~                                                                                       ~
+|                                                                                       |
+├───────────────────────────────────────────────────────────────────────────────────────┤
+│ Status: Scanning Windows registry...  [############----------------]                  │
+└───────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+##### ACTIVE-Mode Scanning State Snippet Notes
+- `Start Scan` is unavailable while scanning.
+- `Cancel Scan` is visible while scanning.
+- Progress is shown compactly in the status bar.
+- Source controls remain locked.
+- `Load Report` is locked.
+- `Export Report` is locked.
+
+#### 2.1.3 ACTIVE-Mode Post-Scan
 This is the main post-scan review screen in active mode.
 
 ```text
@@ -132,7 +170,7 @@ This is the main post-scan review screen in active mode.
 - The finding row uses a human-readable location category in the Status column.
 - The status bar is one line.
 
-#### 2.1.3 TRIAGE-Mode
+#### 2.1.4 TRIAGE-Mode
 This is the screen shown after loading a report.
 
 ```text
@@ -185,44 +223,6 @@ This is the screen shown after loading a report.
 - The details pane includes the User Triage section.
 - Notes auto-save on blur.
 - The status bar reflects triage confirmation count.
-
-#### 2.1.4 ACTIVE-Mode Scanning State Snippet
-
-```text
-┌───────────────────────────────────────────────────────────────────────────────────────┐
-│ Win10 Disaster Recovery Tool                                            Mode: ACTIVE  │
-│                                                         [Load Locked] [Export Locked] │
-├───────────────────────────────────────────────────────────────────────────────────────┤
-│ Important: If you used secondary drives for programs, games, projects, photos,        │
-│ videos, or other personal files, add those drives now. Wiping or reinstalling can     │
-│ make data unrecoverable.                                                              │
-├───────────────────────────────────────────────────────────────────────────────────────┤
-│ Sources                                                                   [Locked]    │
-│ ┌───────────────────────────────────────────────────────────────────────────────────┐ │
-│ │ Windows drive (512 GB)    Windows drive    ntfs-3g read-only    Ready             │ │
-│ │ Data drive (1 TB)         Secondary drive  ntfsls report        Ready             │ │
-│ └───────────────────────────────────────────────────────────────────────────────────┘ │
-│ [Start Scan: unavailable] [Cancel Scan]                                               │
-├───────────────────────────────────────────────────────────────────────────────────────┤
-|                                                                                       |
-~                                                                                       ~
-
-...UI Elements omitted for brevity...
-
-~                                                                                       ~
-|                                                                                       |
-├───────────────────────────────────────────────────────────────────────────────────────┤
-│ Status: Scanning Windows registry...  [############----------------]                  │
-└───────────────────────────────────────────────────────────────────────────────────────┘
-```
-
-##### ACTIVE-Mode Scanning State Snippet Notes
-- `Start Scan` is unavailable while scanning.
-- `Cancel Scan` is visible while scanning.
-- Progress is shown compactly in the status bar.
-- Source controls remain locked.
-- `Load Report` is locked.
-- `Export Report` is locked.
 
 ---
 
