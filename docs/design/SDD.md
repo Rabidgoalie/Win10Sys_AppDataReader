@@ -524,7 +524,7 @@ Responsibilities:
 - Hydrate TRIAGE-mode data.
 - Replace current session state safely during import.
 - Preserve original IDs.
-- Run import/export work off the UI thread for large reports.
+- Run import/export work off the UI thread.
 
 Core APIs:
 
