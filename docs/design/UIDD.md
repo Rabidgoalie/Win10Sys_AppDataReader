@@ -583,7 +583,7 @@ Behavior:
 
 - Results are available for review.
 - Mounts have been released.
-- To scan again, the user restarts the application or starts a new session if explicitly provided by the implementation.
+- To scan again, the user restarts the application.
 
 ### 10.5 Triage Mode State
 
