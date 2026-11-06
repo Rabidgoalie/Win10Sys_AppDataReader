@@ -65,6 +65,7 @@ __all__ = [
     "value_data_hash",
     "compute_evidence_hash",
     "compute_identity_hash",
+    "name_publisher_version_key",
     # Domain enums
     "SessionMode",
     "SessionStatus",
@@ -682,6 +683,31 @@ def _canon_identity_key(basis: IdentityBasis, identity_key: str) -> str:
         return _UNIT_SEPARATOR.join(parts)
     # IdentityBasis.FALLBACK: deterministic normalized evidence-derived key.
     return text.lower()
+
+
+def name_publisher_version_key(
+    display_name: str,
+    publisher: str | None,
+    version: str | None,
+) -> str:
+    """Canonical identity_key for IdentityBasis.NAME_PUBLISHER_VERSION (DDD §6).
+
+    The correlator (SDD §2.14) must build compound identity keys through this
+    helper so the unit-separator layout matches `_canon_identity_key`
+    byte-for-byte; ad-hoc key construction risks identity-hash drift.
+    Trailing empty slots are omitted so a name-only key stays stable whether
+    or not publisher/version were ever discovered.
+    """
+    parts = [
+        (display_name or "").strip(),
+        (publisher or "").strip(),
+        (version or "").strip(),
+    ]
+    while parts and not parts[-1]:
+        parts.pop()
+    if not parts or not parts[0]:
+        raise ValueError("display_name must contribute to the identity key (DDD §6).")
+    return _UNIT_SEPARATOR.join(parts)
 
 
 def compute_identity_hash(
