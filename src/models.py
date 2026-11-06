@@ -599,17 +599,25 @@ def _canonical_value_payload(value: "RegistryValue") -> str:
         text = "" if data is None else str(data).rstrip("\x00")
         return f"{prefix}={text}"
     if vtype is RegistryValueType.MULTI_STRING:
-        elements = () if data is None else tuple(str(e).rstrip("\x00") for e in data)
+        # Corrupt hives may surface a bare str/bytes; never iterate those
+        # character-wise — that would silently change the DDD §5 digest.
+        if data is None:
+            elements: tuple[str, ...] = ()
+        elif isinstance(data, (str, bytes)):
+            elements = (str(data).rstrip("\x00"),)
+        else:
+            elements = tuple(str(element).rstrip("\x00") for element in data)
         return "msz=" + _UNIT_SEPARATOR.join(elements)
-    if vtype is RegistryValueType.DWORD:
-        number = 0 if data is None else int(data) & 0xFFFFFFFF
-        return f"dw={number}"
-    if vtype is RegistryValueType.QWORD:
-        number = 0 if data is None else int(data) & 0xFFFFFFFFFFFFFFFF
-        return f"qw={number}"
+    if vtype in (RegistryValueType.DWORD, RegistryValueType.QWORD):
+        mask = (
+            0xFFFFFFFF
+            if vtype is RegistryValueType.DWORD
+            else 0xFFFFFFFFFFFFFFFF
+        )
+        prefix = "dw" if vtype is RegistryValueType.DWORD else "qw"
+        return f"{prefix}={_coerce_int_or_zero(data) & mask}"
     if vtype is RegistryValueType.BINARY:
-        raw = b"" if data is None else bytes(data)
-        return f"bin={raw.hex()}"
+        return f"bin={_coerce_bytes(data).hex()}"
     return "none="
 
 
