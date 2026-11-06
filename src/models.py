@@ -648,10 +648,9 @@ def safe_value_text(value: "RegistryValue | None") -> str:
         elements = () if data is None else tuple(str(e).rstrip("\x00") for e in data)
         return " | ".join(elements)
     if vtype in (RegistryValueType.DWORD, RegistryValueType.QWORD):
-        return str(0 if data is None else int(data))
+        return str(_coerce_int_or_zero(data))
     if vtype is RegistryValueType.BINARY:
-        raw = b"" if data is None else bytes(data)
-        hex_text = raw.hex()
+        hex_text = _coerce_bytes(data).hex()
         if len(hex_text) > 128:
             hex_text = hex_text[:128] + "..."
         return hex_text
