@@ -1194,6 +1194,10 @@ class RegistryParseOptions:
     decode_userassist_rot13: bool = True
     max_evidence_total: int | None = None
     max_evidence_per_root: int | None = None
+    # Per-key bounds; None defers to the session's ScanOptions values
+    # (SRS FR-2.3: max subkeys / max values examined per registry key).
+    max_subkeys_per_key: int | None = None
+    max_values_per_key: int | None = None
     control_set_override: str | None = None
 
 
@@ -1650,6 +1654,11 @@ class ScanOptions:
     max_findings: int = 5_000
     max_manifest_entries: int = 500_000
     max_evidence_per_registry_root: int = 5_000
+    # SRS FR-2.3: per-key registry bounds (subkeys/values examined per key).
+    max_registry_subkeys_per_key: int = 2_000
+    max_registry_values_per_key: int = 2_000
+    # SRS FR-2.3: filesystem entries examined per source.
+    max_filesystem_entries_per_source: int = 100_000
     max_directory_depth: int = 12
     max_directory_entries: int = 20_000
     include_wow64: bool = True
@@ -1690,6 +1699,11 @@ class ScanOptions:
             max_findings=_int("max_findings", 5_000),
             max_manifest_entries=_int("max_manifest_entries", 500_000),
             max_evidence_per_registry_root=_int("max_evidence_per_registry_root", 5_000),
+            max_registry_subkeys_per_key=_int("max_registry_subkeys_per_key", 2_000),
+            max_registry_values_per_key=_int("max_registry_values_per_key", 2_000),
+            max_filesystem_entries_per_source=_int(
+                "max_filesystem_entries_per_source", 100_000
+            ),
             max_directory_depth=_int("max_directory_depth", 12),
             max_directory_entries=_int("max_directory_entries", 20_000),
             include_wow64=_bool("include_wow64", True),
