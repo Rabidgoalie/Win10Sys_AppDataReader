@@ -547,6 +547,42 @@ def compute_evidence_hash(
     return _sha256_hex(_UNIT_SEPARATOR.join(fields).encode("utf-8"))
 
 
+def _coerce_int_or_zero(data: Any) -> int:
+    """Total integer coercion for corrupt-hive payloads (SDD §4.2).
+
+    Hashing and display must never raise on malformed registry cells: a hive
+    that stores garbage in a DWORD degrades to a deterministic zero (the
+    parser records the condition via Evidence.parse_warning), never into an
+    exception escaping the evidence worker.
+    """
+    if data is None:
+        return 0
+    try:
+        return int(data)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _coerce_bytes(data: Any) -> bytes:
+    """Total bytes coercion for corrupt-hive payloads (SDD §4.2).
+
+    Hashing and display must never raise on malformed registry cells: a hive
+    that stores garbage in a byte-valued cell degrades to a deterministic empty
+    bytes value (the parser records the condition via Evidence.parse_warning),
+    never into an exception escaping the evidence worker.
+    """
+    if data is None:
+        return b""
+    if isinstance(data, bytes):
+        return data
+    if isinstance(data, str):
+        return data.encode("utf-8", errors="replace")
+    try:
+        return bytes(data)
+    except (TypeError, ValueError):
+        return b""
+
+
 def _canonical_value_payload(value: "RegistryValue") -> str:
     """Type-prefixed canonical representation of a registry value (DDD §5).
 
