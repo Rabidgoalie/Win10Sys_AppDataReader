@@ -55,86 +55,86 @@ win10-disaster-recovery/
 
 ### Phase 1: Scaffolding and Core Models
 
-- `setup.sh`
-- `requirements.txt`
-- `requirements-dev.txt`
-- `src/models.py`
-- `src/pathnorm.py`
-- configuration modules
-- deterministic hash contracts
-- DTO contracts
+- [ ] `setup.sh`
+- [ ] `requirements.txt`
+- [ ] `requirements-dev.txt`
+- [ ] `src/models.py`
+- [ ] `src/pathnorm.py`
+- [ ] configuration modules
+- [ ] deterministic hash contracts
+- [ ] DTO contracts
 
 ### Phase 2: Persistence and Mount Safety
 
-- SQLite schema initialization
-- warning storage
-- source persistence
-- block device discovery
-- safe read-only mounting
-- safe unmount confirmation flow
-- mount cleanup handlers
-- privilege invocation boundaries
-- critical I/O failure handling
+- [ ] SQLite schema initialization
+- [ ] warning storage
+- [ ] source persistence
+- [ ] block device discovery
+- [ ] safe read-only mounting
+- [ ] safe unmount confirmation flow
+- [ ] mount cleanup handlers
+- [ ] privilege invocation boundaries
+- [ ] critical I/O failure handling
 
 ### Phase 3: Evidence Ingestion
 
-- hive locator
-- user profile parser
-- registry evidence parser
-- evidence persistence batching
-- manifest generator
-- manifest parser
-- portable scanner
-- bounded enumeration warnings
+- [ ] hive locator
+- [ ] user profile parser
+- [ ] registry evidence parser
+- [ ] evidence persistence batching
+- [ ] manifest generator
+- [ ] manifest parser
+- [ ] portable scanner
+- [ ] bounded enumeration warnings
 
 ### Phase 4: Correlation and Heuristics
 
-- evidence correlation from persisted evidence
-- source-scoped application identity
-- fingerprint status assignment
-- portable candidate merging
-- user-data classification
-- Documents baseline comparison
-- Visual Studio source detection
-- finding deduplication
-- exclusion handling
+- [ ] evidence correlation from persisted evidence
+- [ ] source-scoped application identity
+- [ ] fingerprint status assignment
+- [ ] portable candidate merging
+- [ ] user-data classification
+- [ ] Documents baseline comparison
+- [ ] Visual Studio source detection
+- [ ] finding deduplication
+- [ ] exclusion handling
 
 ### Phase 5: State and Coordination
 
-- report export
-- report import
-- background worker coordinator
-- typed progress events
-- throttled UI updates
-- cancellation handling
-- critical I/O failure state
-- cleanup coordination
+- [ ] report export
+- [ ] report import
+- [ ] background worker coordinator
+- [ ] typed progress events
+- [ ] throttled UI updates
+- [ ] cancellation handling
+- [ ] critical I/O failure state
+- [ ] cleanup coordination
 
 ### Phase 6: Presentation
 
-- source list panel
-- source role selection flow
-- secondary-drive advisory
-- treeview grid with application and finding rows
-- details pane
-- status bar with tooltips and progress indication
-- TRIAGE mode
-- export report flow
-- confirmation dialogs
+- [ ] source list panel
+- [ ] source role selection flow
+- [ ] secondary-drive advisory
+- [ ] treeview grid with application and finding rows
+- [ ] details pane
+- [ ] status bar with tooltips and progress indication
+- [ ] TRIAGE mode
+- [ ] export report flow
+- [ ] confirmation dialogs
 
 ### Phase 7: Tests
 
-- path normalization tests
-- manifest parser tests
-- registry parser tests with synthetic fixture hives or mocked hive structures
-- user profile parser tests
-- portable scanner tests
-- correlator tests
-- user-data classifier tests
-- database tests
-- report round-trip tests
-- bounded-enumeration tests
-- critical failure-state tests
+- [ ] path normalization tests
+- [ ] manifest parser tests
+- [ ] registry parser tests with synthetic fixture hives or mocked hive structures
+- [ ] user profile parser tests
+- [ ] portable scanner tests
+- [ ] correlator tests
+- [ ] user-data classifier tests
+- [ ] database tests
+- [ ] report round-trip tests
+- [ ] bounded-enumeration tests
+- [ ] critical failure-state tests
 
 ---
 
