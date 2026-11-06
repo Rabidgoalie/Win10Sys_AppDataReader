@@ -206,7 +206,7 @@ if pybin="$(find_python312)"; then
   log_ok "Python ${pyver} found at ${pybin}"
 else
   add_missing "Python 3.12-series interpreter (>= 3.12.0, < 3.13.0)" \
-              "sudo apt update && sudo apt install -y python3.12" "python3.12"
+              "sudo apt update && sudo apt install -y python3.12"
   log_warn "No Python 3.12-series interpreter was found."
 fi
 
