@@ -687,6 +687,10 @@ class BlockDevice:
     uuid: str | None = None
     mount_points: tuple[str, ...] = ()
     transport: str | None = None
+    part_label: str | None = None  # SDD §2.7: lsblk PARTLABEL where available.
+    # Child-node count from lsblk nesting; required to implement the
+    # SRS FR-1.2 whole-disk candidate rule (no partition children).
+    child_count: int = 0
 
     @property
     def is_mounted(self) -> bool:
@@ -694,8 +698,22 @@ class BlockDevice:
 
     @property
     def is_ntfs_partition(self) -> bool:
-        """Candidate source per SRS/SDD §2.7: an NTFS partition only."""
+        """Strict partition test: a `part` node formatted NTFS."""
         return self.dev_type == "part" and (self.fs_type or "").lower() == "ntfs"
+ 
+    @property
+    def is_ntfs_candidate(self) -> bool:
+        """Source candidacy per SRS FR-1.2 / SDD §2.7.
+ 
+        NTFS partitions always qualify.  Whole disks qualify only when they
+        carry NTFS directly *and* have no partition children.  loop/rom/ram
+        and all other node types never qualify and never reach the UI.
+        """
+        if (self.fs_type or "").lower() != "ntfs":
+            return False
+        if self.dev_type == "part":
+            return True
+        return self.dev_type == "disk" and self.child_count == 0
 
 
 def _validate_source_pairing(source_type: SourceType, acquisition_method: AcquisitionMethod) -> None:
