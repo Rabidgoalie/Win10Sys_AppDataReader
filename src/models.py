@@ -266,7 +266,7 @@ class SourceRole(StrEnum):
 
 class AcquisitionMethod(StrEnum):
     NTFS3G_RO = "ntfs3g_ro"
-    NTFLS_MANIFEST = "ntfsls_manifest"
+    NTFSLS_MANIFEST = "ntfsls_manifest"
 
 
 class SourceStatus(StrEnum):
