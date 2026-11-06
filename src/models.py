@@ -151,9 +151,10 @@ _GUID_DASHED_RE = re.compile(
     r"([0-9A-Fa-f]{4})-([0-9A-Fa-f]{12})\}?$"
 )
 _GUID_BARE_RE = re.compile(r"^[0-9A-Fa-f]{32}$")
-_LOGICAL_DRIVE_RE = re.compile(r"^[A-Z][0-9]*:$")
-"""Valid logical drives: ``C:`` (primary Windows source) and ``S1:``,
-``S2:``, ... (secondary sources, in user addition order — SDD §2.4)."""
+_LOGICAL_DRIVE_RE = re.compile(r"^(?:C|S[1-9][0-9]*):$")
+"""Valid logical drives (SDD §2.4): exactly `C:` for the primary Windows
+source and `S1:`, `S2:`, ... for secondaries in addition order.  Any other
+letter — including `S0:` — is rejected at PreparedSource construction."""
 
 
 def new_id() -> str:
