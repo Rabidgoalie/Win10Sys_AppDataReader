@@ -261,11 +261,19 @@ if (( ${#MISSING_LABELS[@]} )); then
   done
   printf '\n'
   if [[ "$python_present" == 1 ]]; then
-    log_info "Convenience one-liner for the missing host packages (Ubuntu/Pop!_OS):"
-    log_info "    sudo apt update && sudo apt install -y ${WANTED_PKGS[*]}"
+    if (( ${#WANTED_PKGS[@]} )); then
+      log_info "Convenience one-liner for the missing host packages (Ubuntu/Pop!_OS):"
+      log_info "    sudo apt update && sudo apt install -y ${WANTED_PKGS[*]}"
+    else
+      log_info "No additional host packages are required; resolve the project-local item above, then re-run this script."
+    fi
   else
     log_info "Install Python 3.12 with its usual companions, plus any missing host tools, then re-run:"
-    log_info "    sudo apt update && sudo apt install -y python3.12 python3-venv python3-tk ${WANTED_PKGS[*]}"
+    if (( ${#WANTED_PKGS[@]} )); then
+      log_info "    sudo apt update && sudo apt install -y python3.12 python3-venv python3-tk ${WANTED_PKGS[*]}"
+    else
+      log_info "    sudo apt update && sudo apt install -y python3.12 python3-venv python3-tk"
+    fi
   fi
   log_info "This tool does not use Conda, does not require git, and never installs host packages automatically."
   exit 1
