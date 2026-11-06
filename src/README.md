@@ -55,9 +55,9 @@ win10-disaster-recovery/
 
 ### Phase 1: Scaffolding and Core Models
 
-- [ ] `setup.sh`
-- [ ] `requirements.txt`
-- [ ] `requirements-dev.txt`
+- [x] `setup.sh`
+- [x] `requirements.txt`
+- [x] `requirements-dev.txt`
 - [ ] `src/models.py`
 - [ ] `src/pathnorm.py`
 - [ ] configuration modules
