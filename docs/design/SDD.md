@@ -140,7 +140,13 @@ Responsibilities:
 - Define exclusion patterns.
 - Define severity defaults.
 - Define confidence defaults.
-- Define developer-content patterns, including Visual Studio source directories.
+- Define developer-content patterns, including:
+	- **Visual Studio:** `<UserProfile>\source`, `<UserProfile>\source\repos`
+	- **IntelliJ / JetBrains Suite:** `<UserProfile>\IdeaProjects`
+	- **Rider / ReSharper:** `<UserProfile>\RiderProjects`
+	- **Eclipse:** `<UserProfile>\workspace` or `<UserProfile>\eclipse-workspace`
+	- **NetBeans:** `<UserProfile>\NetBeansProjects`
+	- **VS Code / Generic:** `<UserProfile>\projects`, `<UserProfile>\code`, `<UserProfile>\dev`
 - Define OneDrive path patterns.
 - Define category precedence rules.
 - Define enumeration bounds for filesystem and manifest heuristics.
@@ -307,7 +313,7 @@ Responsibilities:
 - Locate `NTUSER.DAT` and `UsrClass.dat`.
 - Resolve Documents, Desktop, Downloads, Pictures, Music, Videos, Saved Games, and AppData paths.
 - Expand environment variables in shell-folder values using offline profile knowledge.
-- Detect Visual Studio `source` and `source\repos` directories.
+- Detect common IDE source-code workspace directories, including Visual Studio (`source`, `source\repos`), IntelliJ (`IdeaProjects`), Rider (`RiderProjects`), Eclipse (`workspace`), and generic development directories (`projects`, `code`, `dev`).
 - Handle redirected folders conservatively.
 - Mark unresolved Documents baselines as unknown.
 
@@ -410,7 +416,7 @@ Responsibilities:
 
 - Identify potential user-generated-content locations.
 - Compare candidate paths against resolved Documents baselines.
-- Detect Visual Studio source directories.
+- Detect IDE source-code directories (Visual Studio, IntelliJ, Rider, Eclipse, VS Code workspace paths).
 - Detect OneDrive-like paths by path patterns only.
 - Classify findings as inside Documents, outside Documents, or unknown.
 - Assign severity and confidence.
@@ -518,7 +524,7 @@ Responsibilities:
 - Hydrate TRIAGE-mode data.
 - Replace current session state safely during import.
 - Preserve original IDs.
-- Run import/export work off the UI thread for large reports.
+- Run import/export work off the UI thread.
 
 Core APIs:
 

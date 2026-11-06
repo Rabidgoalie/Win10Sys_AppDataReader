@@ -1,6 +1,4 @@
-# Database Design Document (DDD)
-
-## Windows 10 Disaster Recovery Application
+# Database Design Document (DDD): Windows 10 Disaster Recovery Application
 
 ## 1. Storage Strategy
 
@@ -191,17 +189,9 @@ When a source is ready or complete, the corresponding `mount_point` or `manifest
 | appdata_roaming_path | TEXT | NULL | AppData Roaming path. |
 | appdata_locallow_path | TEXT | NULL | AppData LocalLow path. |
 | saved_games_path | TEXT | NULL | Saved Games path. |
-| source_code_path | TEXT | NULL | Primary Visual Studio source path, if found. |
 | is_default_profile | INTEGER | NOT NULL, DEFAULT 0 | Default profile flag. |
 | is_system_profile | INTEGER | NOT NULL, DEFAULT 0 | System profile flag. |
 | parse_warnings_json | TEXT | NULL | Profile parse warnings. |
-
-`source_code_path` shall store the preferred Visual Studio source directory:
-
-- prefer `<UserProfile>\source\repos` if it exists and contains child entries;
-- otherwise use `<UserProfile>\source` if it exists and contains child entries.
-
-The classifier may still emit separate findings for both locations when appropriate.
 
 ---
 
@@ -358,7 +348,7 @@ VIRTUALSTORE
 PROGRAMDATA
 SECONDARY_DRIVE
 PORTABLE_DATA_DIR
-SOURCE_CODE
+SOURCE_CODE  (covers Visual Studio, IntelliJ, Rider, Eclipse, VS Code workspaces, etc.)
 USER_PROFILE_OTHER
 UNKNOWN
 ```

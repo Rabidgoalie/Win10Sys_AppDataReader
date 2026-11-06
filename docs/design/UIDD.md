@@ -81,7 +81,45 @@ This is the main pre-scan review screen in active mode.
 - The status bar shows a user-facing readiness summary rather than exposing internal session-state terminology.
 - The main Windows drive has been added; the secondary data drive has not yet been added.
 
-#### 2.1.2 ACTIVE-Mode Post-Scan
+#### 2.1.2 ACTIVE-Mode Scanning State Snippet
+
+```text
+┌───────────────────────────────────────────────────────────────────────────────────────┐
+│ Win10 Disaster Recovery Tool                                            Mode: ACTIVE  │
+│                                                         [Load Locked] [Export Locked] │
+├───────────────────────────────────────────────────────────────────────────────────────┤
+│ Important: If you used secondary drives for programs, games, projects, photos,        │
+│ videos, or other personal files, add those drives now. Wiping or reinstalling can     │
+│ make data unrecoverable.                                                              │
+├───────────────────────────────────────────────────────────────────────────────────────┤
+│ Sources                                                                   [Locked]    │
+│ ┌───────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ Windows drive (512 GB)    Windows drive    ntfs-3g read-only    Ready             │ │
+│ │ Data drive (1 TB)         Secondary drive  ntfsls report        Ready             │ │
+│ └───────────────────────────────────────────────────────────────────────────────────┘ │
+│ [Start Scan: unavailable] [Cancel Scan]                                               │
+├───────────────────────────────────────────────────────────────────────────────────────┤
+|                                                                                       |
+~                                                                                       ~
+
+...UI Elements omitted for brevity...
+
+~                                                                                       ~
+|                                                                                       |
+├───────────────────────────────────────────────────────────────────────────────────────┤
+│ Status: Scanning Windows registry...  [############----------------]                  │
+└───────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+##### ACTIVE-Mode Scanning State Snippet Notes
+- `Start Scan` is unavailable while scanning.
+- `Cancel Scan` is visible while scanning.
+- Progress is shown compactly in the status bar.
+- Source controls remain locked.
+- `Load Report` is locked.
+- `Export Report` is locked.
+
+#### 2.1.3 ACTIVE-Mode Post-Scan
 This is the main post-scan review screen in active mode.
 
 ```text
@@ -132,7 +170,7 @@ This is the main post-scan review screen in active mode.
 - The finding row uses a human-readable location category in the Status column.
 - The status bar is one line.
 
-#### 2.1.3 TRIAGE-Mode
+#### 2.1.4 TRIAGE-Mode
 This is the screen shown after loading a report.
 
 ```text
@@ -185,44 +223,6 @@ This is the screen shown after loading a report.
 - The details pane includes the User Triage section.
 - Notes auto-save on blur.
 - The status bar reflects triage confirmation count.
-
-#### 2.1.4 ACTIVE-Mode Scanning State Snippet
-
-```text
-┌───────────────────────────────────────────────────────────────────────────────────────┐
-│ Win10 Disaster Recovery Tool                                            Mode: ACTIVE  │
-│                                                         [Load Locked] [Export Locked] │
-├───────────────────────────────────────────────────────────────────────────────────────┤
-│ Important: If you used secondary drives for programs, games, projects, photos,        │
-│ videos, or other personal files, add those drives now. Wiping or reinstalling can     │
-│ make data unrecoverable.                                                              │
-├───────────────────────────────────────────────────────────────────────────────────────┤
-│ Sources                                                                   [Locked]    │
-│ ┌───────────────────────────────────────────────────────────────────────────────────┐ │
-│ │ Windows drive (512 GB)    Windows drive    ntfs-3g read-only    Ready             │ │
-│ │ Data drive (1 TB)         Secondary drive  ntfsls report        Ready             │ │
-│ └───────────────────────────────────────────────────────────────────────────────────┘ │
-│ [Start Scan: unavailable] [Cancel Scan]                                               │
-├───────────────────────────────────────────────────────────────────────────────────────┤
-|                                                                                       |
-~                                                                                       ~
-
-...UI Elements omitted for brevity...
-
-~                                                                                       ~
-|                                                                                       |
-├───────────────────────────────────────────────────────────────────────────────────────┤
-│ Status: Scanning Windows registry...  [############----------------]                  │
-└───────────────────────────────────────────────────────────────────────────────────────┘
-```
-
-##### ACTIVE-Mode Scanning State Snippet Notes
-- `Start Scan` is unavailable while scanning.
-- `Cancel Scan` is visible while scanning.
-- Progress is shown compactly in the status bar.
-- Source controls remain locked.
-- `Load Report` is locked.
-- `Export Report` is locked.
 
 ---
 
@@ -373,6 +373,8 @@ Filters:
 - Registered.
 - Portable.
 - Orphaned.
+- Low Risk.
+- Medium Risk.
 - High Risk.
 - Outside Documents.
 - Specific user profile.
@@ -381,7 +383,7 @@ Filters:
 Filter semantics:
 
 - Application-status filters show application rows only.
-- High Risk shows application rows with derived High risk and finding rows with High severity.
+- Risk-level filters (`Low Risk`, `Medium Risk`, `High Risk`) show application rows matching the derived risk level and finding rows matching the corresponding severity level.
 - Outside Documents shows finding rows where `inside_documents` is false.
 - Specific user profile shows finding rows associated with that profile and application rows directly associated with those findings.
 - Confirmed shows confirmed finding rows.
@@ -581,7 +583,7 @@ Behavior:
 
 - Results are available for review.
 - Mounts have been released.
-- To scan again, the user restarts the application or starts a new session if explicitly provided by the implementation.
+- To scan again, the user restarts the application.
 
 ### 10.5 Triage Mode State
 
@@ -609,8 +611,9 @@ The application shall use explicit confirmation for:
 - overwriting an existing report file;
 - overwriting an existing manifest file;
 - replacing the current triage session by loading another report.
+- when the user attempts to close the application (via window close, exit menu, or shortcut), the application shall display a confirmation dialog: *"Are you sure you want to exit? If you have completed a scan or made triage updates, remember to export a fresh Report to preserve your data across sessions."* with actions to `Close App` or `Return to App`.
 
-Confirmation wording shall be calm and non-blaming.
+Confirmation wording shall be calm, clear, and non-blaming. To prevent accidental data loss, dialog buttons shall feature distinct visual separation. The safest outcome (e.g., `Return to App`) shall be designated as the primary default button and positioned on the bottom right of the dialog. This ensures that reflexive clicks or accidental `Enter` keypresses default to keeping the application open.
 
 ---
 

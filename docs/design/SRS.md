@@ -298,7 +298,7 @@ The user shall be able to:
 - See the acquisition method.
 - See whether the source is pending, ready, complete, or failed.
 
-The application shall not require users to manually type raw device paths unless no practical alternative exists.
+The application shall not require users to manually type raw device paths.
 
 Sources shall be locked once scanning begins.
 
@@ -318,7 +318,7 @@ Candidate filtering shall:
 - allow whole disks only when they directly contain an NTFS filesystem and do not contain partition children;
 - exclude loop devices, RAM disks, optical media, swap, squashfs, ISO9660, LUKS, LVM physical volumes, and other non-NTFS candidates;
 - display size, label, and UUID where available;
-- avoid requiring the user to understand raw device paths.
+- not require the user to understand raw device paths.
 
 ### FR-1.3 Source Roles
 
