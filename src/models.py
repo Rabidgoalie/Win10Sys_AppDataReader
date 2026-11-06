@@ -1788,7 +1788,15 @@ class SessionBundle:
 # Typed UI events (SDD §2.19)
 # ---------------------------------------------------------------------------
 
-@dataclass(frozen=True, slots=True)
+# kw_only=True is load-bearing: every UiEvent field carries a default, while
+# subclass events declare required fields (ProgressEvent.stage,
+# WarningEvent.warning, ScanCompletedEvent.session_id, ...).  Without kw_only
+# on the base, class creation raises
+#     TypeError: non-default argument follows default argument
+# and the module fails to import.  Keyword-only base fields keep the generated
+# signatures legal, e.g.:
+#     ProgressEvent("registry", source_id=..., *, event_id=..., emitted_at=...)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class UiEvent:
     """Base of all worker -> UI messages (SDD §5 Observer/Queue pattern).
 
