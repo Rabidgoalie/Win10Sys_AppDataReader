@@ -143,8 +143,18 @@ join character inside both hash payloads; it never appears in the hashed
 fields themselves (paths, keys, and identifiers are trimmed of it), so the
 digest is unambiguous."""
 
-_DRIVE_PREFIX_RE = re.compile(r"^[a-z][0-9]*:\\")
-"""Matches a lowercase drive prefix (``c:\\``, ``s1:\\``) in canonical paths."""
+_DRIVE_PREFIX_RE = re.compile(r"^[a-z][0-9]*:(?:\\|$)")
+"""Matches the lowercase drive prefix at the start of a canonical path:
+``c:\\...`` / ``s1:\\...`` (drive + separator) or a bare drive root
+``c:`` / ``s1:`` (F-03 fix).
+
+The separator is optional because ``canonical_path_structure`` removes the
+trailing backslash from drive roots (``C:\\`` -> ``C:``), so a bare root
+reaches this matcher with no separator.  Requiring the separator *or end-of-
+string* (rather than just "optional separator") keeps malformed input such
+as ``c:foo`` untouched — the semantic change is confined to the one degenerate
+root case.
+"""
 
 _PATH_SEPARATOR_RE = re.compile(r"[\\/]+")
 _GUID_DASHED_RE = re.compile(
@@ -465,7 +475,9 @@ def canon_source_relative_path(value: str | None) -> str:
 
     Accepts either an already source-relative path (``windows\\system32``) or
     a logical drive path (``c:\\windows\\system32``) and strips the drive
-    prefix, so both inputs hash identically.
+    prefix, so both inputs hash identically.  A bare drive root
+    (``C:`` / ``C:\\``) *is* the source root and therefore normalizes to the
+    empty string.
     """
     text = canon_lower_path(value)
     match = _DRIVE_PREFIX_RE.match(text)
