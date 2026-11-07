@@ -442,7 +442,13 @@ def canonical_path_structure(value: str | None) -> str:
     if value is None:
         return ""
     text = value.strip().replace("/", "\\")
-    text = _PATH_SEPARATOR_RE.sub("\\", text)
+    # F-02 fix: re.sub() parses its replacement as a template, where a lone
+    # "\" is a bad escape ("bad escape (end of pattern)"). The replacement
+    # must therefore be the template-escaped literal backslash, r"\\"
+    # (two characters that parse to one literal backslash). A lambda
+    # replacement would be equally safe; the literal form merely avoids the
+    # per-match callable invocation, a real (but small) win.
+    text = _PATH_SEPARATOR_RE.sub(r"\\", text)
     if text.startswith("\\"):
         return "\\\\" + text.lstrip("\\")
     return text.strip("\\")
