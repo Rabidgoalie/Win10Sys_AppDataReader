@@ -85,6 +85,9 @@ from src.models import (
     safe_value_text,
     utc_now_iso,
     value_data_hash,
+    canon_lower_path,
+    canon_source_relative_path,
+    canonical_path_structure,
 )
 
 # ---------------------------------------------------------------------------
@@ -691,6 +694,55 @@ class TestIdentityKeyIdempotence:
         h_a = compute_identity_hash(SOURCE_ID, IdentityBasis.NAME_PUBLISHER_VERSION, key)
         h_b = compute_identity_hash(OTHER_SOURCE_ID, IdentityBasis.NAME_PUBLISHER_VERSION, key)
         assert h_a != h_b
+
+
+# ---------------------------------------------------------------------------
+# F-02 regression lock — path-structure canonicalization
+# ---------------------------------------------------------------------------
+
+class TestPathCanonicalization:
+    """Direct coverage of ``canonical_path_structure`` and its wrappers.
+
+    Regression lock for F-02: ``canonical_path_structure`` previously used
+    ``_PATH_SEPARATOR_RE.sub("\\", text)`` — a lone backslash is an invalid
+    ``re.sub`` *replacement template* ("bad escape (end of pattern)"), so
+    every call raised ``re.error`` at runtime even though the module compiled
+    and imported cleanly.  Every test in this class executes the formerly
+    broken line, so this defect class cannot return unnoticed.
+    """
+
+    def test_backslash_input_is_idempotent(self) -> None:
+        assert canonical_path_structure("C:\\Users\\jdoe\\Documents") == "C:\\Users\\jdoe\\Documents"
+
+    def test_forward_slashes_become_backslashes(self) -> None:
+        assert canonical_path_structure("c:/users/jdoe") == "c:\\users\\jdoe"
+
+    def test_separator_runs_collapse_to_single_backslash(self) -> None:
+        assert canonical_path_structure("a//b\\\\c") == "a\\b\\c"
+
+    def test_trailing_separators_stripped_and_drive_root_preserved(self) -> None:
+        assert canonical_path_structure("C:\\") == "C:"
+        assert canonical_path_structure("C:\\Users\\") == "C:\\Users"
+        assert canonical_path_structure("c:/users/jdoe/") == "c:\\users\\jdoe"
+
+    def test_unc_prefix_preserved(self) -> None:
+        assert canonical_path_structure("\\\\server\\share\\file") == "\\\\server\\share\\file"
+
+    def test_none_yields_empty_string(self) -> None:
+        assert canonical_path_structure(None) == ""
+        assert canon_lower_path(None) == ""
+        assert canon_source_relative_path(None) == ""
+
+    def test_canon_lower_path_lowercases_but_keeps_structure(self) -> None:
+        assert canon_lower_path("C:\\Users\\JDOE") == "c:\\users\\jdoe"
+
+    def test_canon_source_relative_path_strips_drive_prefix(self) -> None:
+        assert canon_source_relative_path("C:\\Windows\\System32") == "windows\\system32"
+        assert canon_source_relative_path("S1:\\Data") == "data"
+        assert canon_source_relative_path("windows\\system32") == "windows\\system32"
+        assert canon_source_relative_path("C:\\") == ""
+        assert canon_source_relative_path("c:") == ""
+        assert canon_source_relative_path("S1:\\") == ""
 
 
 # ---------------------------------------------------------------------------
