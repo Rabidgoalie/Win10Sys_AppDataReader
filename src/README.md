@@ -37,6 +37,7 @@ win10-disaster-recovery/
 │       └── exclusions.py           # False-positive exclusions
 └── tests/
     ├── __init__.py
+    ├── test_models.py
     ├── test_mount_manager.py
     ├── test_pathnorm.py
     ├── test_manifest_parser.py
@@ -124,6 +125,7 @@ win10-disaster-recovery/
 
 ### Phase 7: Tests
 
+- [ ] model construction-validation tests
 - [ ] path normalization tests
 - [ ] manifest parser tests
 - [ ] registry parser tests with synthetic fixture hives or mocked hive structures
