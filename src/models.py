@@ -452,6 +452,14 @@ def canonical_path_structure(value: str | None) -> str:
     if value is None:
         return ""
     text = value.strip().replace("/", "\\")
+    # DDD §5 / SDD §2.4 rule 5 (`pathnorm.py` code review F-05):
+    # detect a UNC share *before* the run collapse below.  The collapse
+    # reduces every leading separator run to a single backslash, so a
+    # post-collapse startswith("\\") cannot distinguish a share prefix from
+    # a stray rooted path; the former branch therefore promoted "\Windows"
+    # to "\\Windows" (a fake UNC form), violating DDD §5 field 5
+    # ("no leading ... backslash").
+    is_unc = text.startswith("\\\\")
     # F-02 fix: re.sub() parses its replacement as a template, where a lone
     # "\" is a bad escape ("bad escape (end of pattern)"). The replacement
     # must therefore be the template-escaped literal backslash, r"\\"
@@ -459,8 +467,16 @@ def canonical_path_structure(value: str | None) -> str:
     # replacement would be equally safe; the literal form merely avoids the
     # per-match callable invocation, a real (but small) win.
     text = _PATH_SEPARATOR_RE.sub(r"\\", text)
-    if text.startswith("\\"):
-        return "\\\\" + text.lstrip("\\")
+    if is_unc:
+        # UNC share: keep exactly two leading separators; drop any stray
+        # trailing separator so "\\server\share\" hashes like
+        # "\\server\share" (pathnorm parity).
+        body = text.lstrip("\\").rstrip("\\")
+        if not body:
+            return ""
+        return "\\\\" + body
+    # Stray leading/trailing separators are stripped, never promoted to a
+    # share prefix; agrees end-for-end with pathnorm.normalize_windows_path.
     return text.strip("\\")
 
 
