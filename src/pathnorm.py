@@ -505,12 +505,18 @@ def map_mount_path_to_source_relative(
             "Refusing to map the mount root itself: evidence paths must be "
             "entries *under* the root."
         )
-    if not child.startswith(root + "/"):
-        raise ValueError(
-            "Refusing to map a path outside the mount root "
-            f"({mount_path!r} is not inside {mount_root!r})."
-        )
-    rel = child[len(root) + 1:]
+    
+    # Handle the filesystem root "/" specifically to avoid "//" prefix checks
+    if root == "/":
+        rel = child[1:]
+    else:
+        if not child.startswith(root + "/"):
+            raise ValueError(
+                "Refusing to map a path outside the mount root "
+                f"({mount_path!r} is not inside {mount_root!r})."
+            )
+        rel = child[len(root) + 1:]
+
     return normalize_windows_path(rel)
 
 
