@@ -60,7 +60,7 @@ win10-disaster-recovery/
 - [x] `requirements.txt`
 - [x] `requirements-dev.txt`
 - [x] `src/models.py`
-- [ ] `src/pathnorm.py`
+- [x] `src/pathnorm.py`
 - [ ] configuration modules
 - [ ] deterministic hash contracts
 - [ ] DTO contracts
@@ -126,7 +126,7 @@ win10-disaster-recovery/
 ### Phase 7: Tests
 
 - [x] model construction-validation tests
-- [ ] path normalization tests
+- [x] path normalization tests
 - [ ] manifest parser tests
 - [ ] registry parser tests with synthetic fixture hives or mocked hive structures
 - [ ] user profile parser tests
