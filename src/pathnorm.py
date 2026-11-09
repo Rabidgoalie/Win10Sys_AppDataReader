@@ -180,11 +180,13 @@ def _normalize_posix_path(value: str | Path | None) -> str | None:
     for part in text.split("/"):
         if part in ("", "."):
             continue
-        if part == "..":
+        elif part == "..":
             if parts:
                 parts.pop()
             else:
                 return None  # escaped above the filesystem root
+        else:
+            parts.append(part)
     return "/" + "/".join(parts)
 
 
