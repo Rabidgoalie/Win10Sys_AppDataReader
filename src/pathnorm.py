@@ -214,13 +214,23 @@ def normalize_windows_path(value: str | None) -> str:
     if not text:
         return ""
     text = text.replace("/", "\\")
+    # SDD §2.4 rule 5 (F-04): a UNC share must be detected *before* the
+    # run collapse below.  The collapse reduces every leading separator
+    # run — including a share's two backslashes — to a single backslash,
+    # so any leading-separator test performed afterwards cannot tell a
+    # share prefix from a stray rooted path.  (The former post-collapse
+    # startswith("\\\\") check was dead code; UNC input was silently
+    # demoted to a root-relative path and is_unc_path could never fire.)
+    is_unc = text.startswith("\\\\")
     # NOTE: the replacement is a re template — r"\\ " decodes to exactly one
     # literal backslash.  A naive single-backslash replacement string would
     # raise "bad escape (end of pattern)" at runtime.
     text = _SEPARATOR_RUN_RE.sub(r"\\", text)
-    if text.startswith("\\\\"):
-        # UNC share: preserve exactly two leading backslashes.
-        text = "\\\\" + text[2:].lstrip("\\")
+    if is_unc:
+        # UNC share: preserve exactly two leading backslashes.  After the
+        # collapse the share prefix is the single leading separator that
+        # lstrip removes before the canonical two are re-attached.
+        text = "\\\\" + text.lstrip("\\")
     else:
         # A single leading separator is stray (device-path artifact); drop
         # it so rooted forms stay root-relative.
