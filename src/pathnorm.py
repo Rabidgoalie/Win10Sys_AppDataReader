@@ -403,6 +403,17 @@ def source_relative_to_logical(
     """
     drive = validate_logical_drive(logical_drive)
     rel = logical_to_source_relative(source_relative)
+    if rel.startswith("\\\\"):
+        # UNC shares are unresolved where source mapping is impossible
+        # (SDD §2.4 rule 5).  Silently prefixing a logical drive would
+        # fabricate provenance ("C:\\server\share"), so fail loudly —
+        # the same posture as the mount-escape boundary in
+        # map_mount_path_to_source_relative.  (F-06: becomes reachable
+        # once F-04 lets UNC values survive normalization.)
+        raise ValueError(
+            "Refusing to prefix a UNC path with a logical drive "
+            f"({source_relative!r} is unresolved)."
+        )
     if not rel:
         return drive
     return f"{drive}\\{rel}"
