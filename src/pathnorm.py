@@ -442,6 +442,11 @@ def is_linux_path_under(
         return False
     if c == p:
         return include_self
+    if p == "/":
+        # F-07: every normalized absolute path hangs directly under the
+        # filesystem root; the generic test below would construct "//"
+        # and never match.
+        return True
     return c.startswith(p + "/")
 
 
