@@ -551,7 +551,7 @@ def manifest_line_to_source_relative(line: str | None) -> str:
     if rel.startswith("\\\\"):
         # UNC share: keep exactly the two leading backslashes, then clean.
         body = rel[2:]
-        parts = [part for part in body.split("\\") if part not in (".", "..")]
+        parts = [part for part in body.split("\\") if part not in (".", "..", "")]
         return "\\\\" + "\\".join(parts)
-    parts = [part for part in rel.split("\\") if part not in (".", "..")]
+    parts = [part for part in rel.split("\\") if part not in (".", "..", "")]
     return "\\".join(parts)
