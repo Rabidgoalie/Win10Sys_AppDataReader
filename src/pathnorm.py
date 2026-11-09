@@ -101,6 +101,13 @@ _DRIVE_PREFIX_RE: Final[re.Pattern[str]] = re.compile(r"^[A-Za-z][0-9]*:")
 #: Runs of backslashes (after forward-slash conversion) collapse to one.
 _SEPARATOR_RUN_RE: Final[re.Pattern[str]] = re.compile(r"\\+")
 
+#: Missing colon drive prefix (e.g., `S1\Programs` instead of `S1:\Programs`).
+#: Restricted to valid logical drives (C, S1, S2...) to prevent false positives
+#: on short directory names like `a\b` or `D\data`.
+_MISSING_COLON_DRIVE_RE: Final[re.Pattern[str]] = re.compile(
+    r"^(?:C|S[1-9][0-9]*)\\", re.IGNORECASE
+)
+
 
 # ---------------------------------------------------------------------------
 # Private helpers (total: never raise on corrupt input)
@@ -386,9 +393,17 @@ def logical_to_source_relative(logical_path: str | None) -> str:
     """
     text = normalize_windows_path(logical_path)
     drive = _DRIVE_PREFIX_RE.match(text)
-    if drive is None:
-        return text
-    return text[drive.end():]
+    if drive is not None:
+        rel = text[drive.end():]
+        if rel.startswith("\\"):
+            rel = rel[1:]
+        return rel
+        
+    missing_colon = _MISSING_COLON_DRIVE_RE.match(text)
+    if missing_colon is not None:
+        return text[missing_colon.end():]
+        
+    return text
 
 
 def source_relative_to_logical(
