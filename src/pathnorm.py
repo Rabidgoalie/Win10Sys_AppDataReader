@@ -193,7 +193,7 @@ def _normalize_posix_path(value: str | Path | None) -> str | None:
 # ---------------------------------------------------------------------------
 
 def normalize_windows_path(value: str | None) -> str:
-    """Display-grade canonical Windows path (SDD §2.4).
+    r"""Display-grade canonical Windows path (SDD §2.4).
 
     Returns ``""`` for ``None``/empty/whitespace input (the "absent"
     sentinel).  Rules applied, in order:
@@ -291,7 +291,7 @@ def paths_equal(a: str | None, b: str | None) -> bool:
 # ---------------------------------------------------------------------------
 
 def is_path_under(child: str | None, parent: str | None) -> bool:
-    """True when ``child`` is *strictly* nested under ``parent``.
+    r"""True when ``child`` is *strictly* nested under ``parent``.
 
     The test is case-insensitive and separator-anchored: ``C:\Users\Bob``
     is NOT under ``C:\Users\Bobby`` because the match requires
@@ -373,7 +373,7 @@ def logical_drive_for_position(position: int) -> str:
 
 
 def logical_to_source_relative(logical_path: str | None) -> str:
-    """Strip the drive prefix from a logical path (case-preserving).
+    r"""Strip the drive prefix from a logical path (case-preserving).
 
     ``C:\Users\Bob`` -> ``Users\Bob``; ``C:`` -> ``""``; UNC paths have no
     drive prefix and are returned unchanged (still unresolved, SDD §2.4
