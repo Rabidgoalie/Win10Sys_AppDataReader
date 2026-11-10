@@ -157,12 +157,17 @@ class TestModulePurityAndImmutability:
         m_run.assert_not_called()
         m_connect.assert_not_called()
 
-        # The only permitted opens are the module's own source/bytecode load.
-        assert m_open.call_args_list, "import did not load module source through open()"
+        # CPython's import machinery reads source/bytecode via _io.open_code
+        # (a C-level call that bypasses builtins.open), so m_open may
+        # legitimately be empty. The guarded_open side_effect still intercepts
+        # any open() issued by the *module's own code* during import. Verify
+        # that any such calls stayed within the allowed source/bytecode set.
         for call in m_open.call_args_list:
             assert call.args, "open() must be called with an explicit path"
             target = os.path.abspath(os.fspath(call.args[0]))
-            assert target in allowed
+            assert target in allowed, (
+                f"module import performed I/O outside its own source: {target!r}"
+            )
 
         # Re-import is deterministic: identical configuration surface.
         assert fresh.REGISTRY_EVIDENCE_TYPE_KEYS == el.REGISTRY_EVIDENCE_TYPE_KEYS
