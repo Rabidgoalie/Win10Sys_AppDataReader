@@ -128,6 +128,8 @@ win10-disaster-recovery/
 
 - [x] model construction-validation tests
 - [x] path normalization tests
+- [ ] evidence locations tests
+- [ ] heuristic patterns tests
 - [ ] manifest parser tests
 - [ ] registry parser tests with synthetic fixture hives or mocked hive structures
 - [ ] user profile parser tests
