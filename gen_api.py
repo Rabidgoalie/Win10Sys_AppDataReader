@@ -3,6 +3,7 @@ import sys
 import inspect
 from pathlib import Path
 import importlib
+import enum
 
 def generate_module_summary(file_path_str: str) -> None:
     path = Path(file_path_str).resolve()
@@ -33,9 +34,26 @@ def generate_module_summary(file_path_str: str) -> None:
         print(f"Error importing {mod_str}: {e}")
         return
 
-    # Build clean Markdown content (no inherited cruft)
+    # Build clean Markdown content
     lines = [f"# API Reference: `{mod_str}`\n"]
     
+    # 1. Capture module-level constants, lookup dictionaries, and rule collections
+    annotations = getattr(mod, "__annotations__", {})
+    constants = []
+    for name, obj in inspect.getmembers(mod):
+        if name.startswith("_") or name == "annotations":
+            continue
+        if inspect.ismodule(obj) or inspect.isclass(obj) or inspect.isfunction(obj) or inspect.isbuiltin(obj):
+            continue
+        annot = annotations.get(name, type(obj).__name__)
+        constants.append(f"- `{name}`: `{annot}`")
+        
+    if constants:
+        lines.append("## Constants & Collections\n")
+        lines.extend(constants)
+        lines.append("")
+
+    # 2. Capture classes and Enums
     for name, obj in inspect.getmembers(mod):
         if inspect.isclass(obj) and getattr(obj, "__module__", "") == mod.__name__:
             lines.append(f"## `class {name}`")
@@ -43,7 +61,13 @@ def generate_module_summary(file_path_str: str) -> None:
                 doc_line = obj.__doc__.strip().splitlines()[0]
                 lines.append(f"> _{doc_line}_\n")
                 
-            if hasattr(obj, "__annotations__") and obj.__annotations__:
+            # Capture Enums (StrEnum, IntEnum, Enum) with their values
+            if issubclass(obj, enum.Enum):
+                lines.append("**Values:**")
+                for member in obj:
+                    lines.append(f"- `{member.name}`: `{member.value!r}`")
+                lines.append("")
+            elif hasattr(obj, "__annotations__") and obj.__annotations__:
                 lines.append("**Fields:**")
                 for field, ftype in obj.__annotations__.items():
                     ftype_name = getattr(ftype, "__name__", str(ftype))
@@ -63,7 +87,9 @@ def generate_module_summary(file_path_str: str) -> None:
                 lines.extend(methods)
                 lines.append("")
                 
-        elif inspect.isfunction(obj) and getattr(obj, "__module__", "") == mod.__name__:
+    # 3. Capture module-level functions
+    for name, obj in inspect.getmembers(mod):
+        if inspect.isfunction(obj) and getattr(obj, "__module__", "") == mod.__name__:
             try:
                 sig = inspect.signature(obj)
                 lines.append(f"## `def {name}{sig}`")
