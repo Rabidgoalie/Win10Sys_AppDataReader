@@ -1,1 +1,5 @@
+# Runtime Python dependencies for the Windows 10 Disaster Recovery Application.
+# Installed into the app-owned venv only (never the host Python).
+#
+# regipy is used for offline (read-only) Windows registry hive parsing.
 regipy>=4.0.0,<5.0.0
