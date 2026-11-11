@@ -41,6 +41,7 @@ win10-disaster-recovery/
     ├── test_models.py
     ├── test_mount_manager.py
     ├── test_pathnorm.py
+    ├── test_heuristic_patterns.py
     ├── test_manifest_parser.py
     ├── test_registry_parser.py
     ├── test_user_profile_parser.py
@@ -67,7 +68,7 @@ Each module must be accompanied by a unit test suite. To be marked as completed,
 | ✅ | `src/models.py` | Defines immutable DTOs and dataclasses representing domain entities like devices, sources, and profiles. | **SDD, DDD** | Needs exact dataclass definitions (SDD 2.3) and database entity mapping (DDD 3 & 4). |
 | ✅ | `src/pathnorm.py` | Normalizes Windows-style paths and computes deterministic evidence hashes for identity mapping. | **SDD, DDD** | Needs normative normalization rules (SDD 2.4) and evidence hash canonicalization rules (DDD 5). |
 | ✅ | `src/config/evidence_locations.py` | Declares registry evidence roots, hive types, and parse bounds derived from Appendix A. | **SRS, SDD** | Needs the exact registry paths from Appendix A (SRS) and configuration bounds (SDD 2.5). |
-|  | `src/config/heuristic_patterns.py` | Defines pattern collections for portable apps, OneDrive paths, and workspace directories. | **SRS, SDD** | Needs IDE/OneDrive patterns (SDD 2.6) and classification logic constraints (SRS FR-4). |
+| ✅ | `src/config/heuristic_patterns.py` | Defines pattern collections for portable apps, OneDrive paths, and workspace directories. | **SRS, SDD** | Needs IDE/OneDrive patterns (SDD 2.6) and classification logic constraints (SRS FR-4). |
 
 #### Phase 2: Persistence and Mount Safety
 | Completed | Target File | Description | Attach These SDLC Documents | Why? |
