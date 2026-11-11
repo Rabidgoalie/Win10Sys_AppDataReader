@@ -68,6 +68,7 @@ Thumbs.db
 # Due to the addition of `gen_api.py` and EmeraldWalk.RunOnSave, we version this
 # .vscode/
 .continue/
+.continueignore
 # `pytest-cov` coverage file
 .coverage
 # Internal "PyDocs" documentation files:
