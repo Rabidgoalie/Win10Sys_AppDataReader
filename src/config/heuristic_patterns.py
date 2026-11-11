@@ -137,24 +137,25 @@ class LocationCategory(StrEnum):
     ``models.FindingLocationCategory`` without guessing.
     """
 
-    APPLICATION_INSTALL = "ApplicationInstall"
-    PORTABLE_APP_DATA = "PortableAppData"
-    SECONDARY_APP = "SecondaryApp"
-    APPDATA_LOCAL = "AppDataLocal"
-    APPDATA_ROAMING = "AppDataRoaming"
-    APPDATA_LOCALLOW = "AppDataLocalLow"
-    SAVED_GAMES = "SavedGames"
-    VIRTUAL_STORE = "VirtualStore"
-    PROGRAM_DATA = "ProgramData"
-    USER_DESKTOP = "UserDesktop"
-    USER_DOWNLOADS = "UserDownloads"
-    USER_PICTURES = "UserPictures"
-    USER_MUSIC = "UserMusic"
-    USER_VIDEOS = "UserVideos"
-    USER_DOCUMENTS = "UserDocuments"
-    ONEDRIVE = "OneDrive"
-    DEVELOPER_CONTENT = "DeveloperContent"
-    USER_OTHER = "UserOther"
+    DOCUMENTS = "DOCUMENTS"
+    DESKTOP = "DESKTOP"
+    DOWNLOADS = "DOWNLOADS"
+    PICTURES = "PICTURES"
+    MUSIC = "MUSIC"
+    VIDEOS = "VIDEOS"
+    ONEDRIVE = "ONEDRIVE"
+    INSTALL_DIR = "INSTALL_DIR"
+    APPDATA_ROAMING = "APPDATA_ROAMING"
+    APPDATA_LOCAL = "APPDATA_LOCAL"
+    APPDATA_LOCALLOW = "APPDATA_LOCALLOW"
+    SAVED_GAMES = "SAVED_GAMES"
+    VIRTUALSTORE = "VIRTUALSTORE"
+    PROGRAMDATA = "PROGRAMDATA"
+    SECONDARY_DRIVE = "SECONDARY_DRIVE"
+    PORTABLE_DATA_DIR = "PORTABLE_DATA_DIR"
+    SOURCE_CODE = "SOURCE_CODE"
+    USER_PROFILE_OTHER = "USER_PROFILE_OTHER"
+    UNKNOWN = "UNKNOWN"
 
 
 class FolderAnchor(StrEnum):
@@ -329,24 +330,25 @@ APP_PACKAGE_EXTENSIONS: Final[frozenset[str]] = frozenset({".msi", ".msix"})
 # * Low = primarily software/system data or the Documents baseline itself
 #   (which the user already knows to protect).
 SEVERITY_DEFAULTS: Final[dict[LocationCategory, str]] = {
-    LocationCategory.APPLICATION_INSTALL: "Low",
-    LocationCategory.PORTABLE_APP_DATA: "Medium",
-    LocationCategory.SECONDARY_APP: "Medium",
+    LocationCategory.INSTALL_DIR: "Low",
+    LocationCategory.PORTABLE_DATA_DIR: "Medium",
+    LocationCategory.SECONDARY_DRIVE: "Medium",
     LocationCategory.APPDATA_LOCAL: "Medium",
     LocationCategory.APPDATA_ROAMING: "Medium",
     LocationCategory.APPDATA_LOCALLOW: "Low",
     LocationCategory.SAVED_GAMES: "High",
-    LocationCategory.VIRTUAL_STORE: "Medium",
-    LocationCategory.PROGRAM_DATA: "Low",
-    LocationCategory.USER_DESKTOP: "Medium",
-    LocationCategory.USER_DOWNLOADS: "Medium",
-    LocationCategory.USER_PICTURES: "High",
-    LocationCategory.USER_MUSIC: "Medium",
-    LocationCategory.USER_VIDEOS: "High",
-    LocationCategory.USER_DOCUMENTS: "Low",
+    LocationCategory.VIRTUALSTORE: "Medium",
+    LocationCategory.PROGRAMDATA: "Low",
+    LocationCategory.DESKTOP: "Medium",
+    LocationCategory.DOWNLOADS: "Medium",
+    LocationCategory.PICTURES: "High",
+    LocationCategory.MUSIC: "Medium",
+    LocationCategory.VIDEOS: "High",
+    LocationCategory.DOCUMENTS: "Low",
     LocationCategory.ONEDRIVE: "High",
-    LocationCategory.DEVELOPER_CONTENT: "High",
-    LocationCategory.USER_OTHER: "Low",
+    LocationCategory.SOURCE_CODE: "High",
+    LocationCategory.USER_PROFILE_OTHER: "Low",
+    LocationCategory.UNKNOWN: "Low",
 }
 
 # Deterministic per-category defaults. Shell folders are High because the
@@ -355,24 +357,25 @@ SEVERITY_DEFAULTS: Final[dict[LocationCategory, str]] = {
 # Categories fed mostly by manifest-only or path-only evidence default lower
 # per FR-4.9.
 CONFIDENCE_DEFAULTS: Final[dict[LocationCategory, str]] = {
-    LocationCategory.APPLICATION_INSTALL: "Low",
-    LocationCategory.PORTABLE_APP_DATA: "Medium",
-    LocationCategory.SECONDARY_APP: "Low",
+    LocationCategory.INSTALL_DIR: "Low",
+    LocationCategory.PORTABLE_DATA_DIR: "Medium",
+    LocationCategory.SECONDARY_DRIVE: "Low",
     LocationCategory.APPDATA_LOCAL: "Medium",
     LocationCategory.APPDATA_ROAMING: "Medium",
     LocationCategory.APPDATA_LOCALLOW: "Medium",
     LocationCategory.SAVED_GAMES: "High",
-    LocationCategory.VIRTUAL_STORE: "Medium",
-    LocationCategory.PROGRAM_DATA: "Medium",
-    LocationCategory.USER_DESKTOP: "High",
-    LocationCategory.USER_DOWNLOADS: "High",
-    LocationCategory.USER_PICTURES: "High",
-    LocationCategory.USER_MUSIC: "High",
-    LocationCategory.USER_VIDEOS: "High",
-    LocationCategory.USER_DOCUMENTS: "High",
+    LocationCategory.VIRTUALSTORE: "Medium",
+    LocationCategory.PROGRAMDATA: "Medium",
+    LocationCategory.DESKTOP: "High",
+    LocationCategory.DOWNLOADS: "High",
+    LocationCategory.PICTURES: "High",
+    LocationCategory.MUSIC: "High",
+    LocationCategory.VIDEOS: "High",
+    LocationCategory.DOCUMENTS: "High",
     LocationCategory.ONEDRIVE: "Medium",
-    LocationCategory.DEVELOPER_CONTENT: "Medium",
-    LocationCategory.USER_OTHER: "Low",
+    LocationCategory.SOURCE_CODE: "Medium",
+    LocationCategory.USER_PROFILE_OTHER: "Low",
+    LocationCategory.UNKNOWN: "Low",
 }
 
 
@@ -385,24 +388,25 @@ CONFIDENCE_DEFAULTS: Final[dict[LocationCategory, str]] = {
 # Developer content and OneDrive are first because they are the highest-value,
 # highest-oversight-risk categories; the catch-all (UserOther) is last.
 CATEGORY_PRECEDENCE: Final[tuple[LocationCategory, ...]] = (
-    LocationCategory.DEVELOPER_CONTENT,
+    LocationCategory.SOURCE_CODE,
     LocationCategory.ONEDRIVE,
     LocationCategory.SAVED_GAMES,
-    LocationCategory.VIRTUAL_STORE,
-    LocationCategory.USER_DOCUMENTS,
-    LocationCategory.USER_DESKTOP,
-    LocationCategory.USER_DOWNLOADS,
-    LocationCategory.USER_PICTURES,
-    LocationCategory.USER_MUSIC,
-    LocationCategory.USER_VIDEOS,
+    LocationCategory.VIRTUALSTORE,
+    LocationCategory.DOCUMENTS,
+    LocationCategory.DESKTOP,
+    LocationCategory.DOWNLOADS,
+    LocationCategory.PICTURES,
+    LocationCategory.MUSIC,
+    LocationCategory.VIDEOS,
     LocationCategory.APPDATA_LOCAL,
     LocationCategory.APPDATA_ROAMING,
     LocationCategory.APPDATA_LOCALLOW,
-    LocationCategory.PORTABLE_APP_DATA,
-    LocationCategory.APPLICATION_INSTALL,
-    LocationCategory.SECONDARY_APP,
-    LocationCategory.PROGRAM_DATA,
-    LocationCategory.USER_OTHER,
+    LocationCategory.PORTABLE_DATA_DIR,
+    LocationCategory.INSTALL_DIR,
+    LocationCategory.SECONDARY_DRIVE,
+    LocationCategory.PROGRAMDATA,
+    LocationCategory.USER_PROFILE_OTHER,
+    LocationCategory.UNKNOWN,
 )
 
 
@@ -413,7 +417,7 @@ CATEGORY_PRECEDENCE: Final[tuple[LocationCategory, ...]] = (
 USER_DATA_FOLDER_PATTERNS: Final[tuple[UserFolderPattern, ...]] = (
     UserFolderPattern(
         name="user_documents",
-        category=LocationCategory.USER_DOCUMENTS,
+        category=LocationCategory.DOCUMENTS,
         anchor=FolderAnchor.PROFILE,
         segments=("Documents",),
         match_rule=FolderMatchRule.DIR_EXACT,
@@ -428,7 +432,7 @@ USER_DATA_FOLDER_PATTERNS: Final[tuple[UserFolderPattern, ...]] = (
     ),
     UserFolderPattern(
         name="user_desktop",
-        category=LocationCategory.USER_DESKTOP,
+        category=LocationCategory.DESKTOP,
         anchor=FolderAnchor.PROFILE,
         segments=("Desktop",),
         match_rule=FolderMatchRule.DIR_EXACT,
@@ -442,7 +446,7 @@ USER_DATA_FOLDER_PATTERNS: Final[tuple[UserFolderPattern, ...]] = (
     ),
     UserFolderPattern(
         name="user_downloads",
-        category=LocationCategory.USER_DOWNLOADS,
+        category=LocationCategory.DOWNLOADS,
         anchor=FolderAnchor.PROFILE,
         segments=("Downloads",),
         match_rule=FolderMatchRule.DIR_EXACT,
@@ -456,7 +460,7 @@ USER_DATA_FOLDER_PATTERNS: Final[tuple[UserFolderPattern, ...]] = (
     ),
     UserFolderPattern(
         name="user_pictures",
-        category=LocationCategory.USER_PICTURES,
+        category=LocationCategory.PICTURES,
         anchor=FolderAnchor.PROFILE,
         segments=("Pictures",),
         match_rule=FolderMatchRule.DIR_EXACT,
@@ -470,7 +474,7 @@ USER_DATA_FOLDER_PATTERNS: Final[tuple[UserFolderPattern, ...]] = (
     ),
     UserFolderPattern(
         name="user_music",
-        category=LocationCategory.USER_MUSIC,
+        category=LocationCategory.MUSIC,
         anchor=FolderAnchor.PROFILE,
         segments=("Music",),
         match_rule=FolderMatchRule.DIR_EXACT,
@@ -484,7 +488,7 @@ USER_DATA_FOLDER_PATTERNS: Final[tuple[UserFolderPattern, ...]] = (
     ),
     UserFolderPattern(
         name="user_videos",
-        category=LocationCategory.USER_VIDEOS,
+        category=LocationCategory.VIDEOS,
         anchor=FolderAnchor.PROFILE,
         segments=("Videos",),
         match_rule=FolderMatchRule.DIR_EXACT,
@@ -554,7 +558,7 @@ USER_DATA_FOLDER_PATTERNS: Final[tuple[UserFolderPattern, ...]] = (
     ),
     UserFolderPattern(
         name="virtual_store",
-        category=LocationCategory.VIRTUAL_STORE,
+        category=LocationCategory.VIRTUALSTORE,
         anchor=FolderAnchor.PROFILE,
         segments=("AppData", "Local", "VirtualStore"),
         match_rule=FolderMatchRule.DIR_OR_UNDER,
@@ -568,7 +572,7 @@ USER_DATA_FOLDER_PATTERNS: Final[tuple[UserFolderPattern, ...]] = (
     ),
     UserFolderPattern(
         name="user_programs",
-        category=LocationCategory.APPLICATION_INSTALL,
+        category=LocationCategory.INSTALL_DIR,
         anchor=FolderAnchor.PROFILE,
         segments=("AppData", "Local", "Programs"),
         match_rule=FolderMatchRule.ANY_UNDER,
@@ -582,7 +586,7 @@ USER_DATA_FOLDER_PATTERNS: Final[tuple[UserFolderPattern, ...]] = (
     ),
     UserFolderPattern(
         name="program_data",
-        category=LocationCategory.PROGRAM_DATA,
+        category=LocationCategory.PROGRAMDATA,
         anchor=FolderAnchor.DRIVE,
         segments=("ProgramData",),
         match_rule=FolderMatchRule.ANY_UNDER,
@@ -607,7 +611,7 @@ USER_DATA_FOLDER_PATTERNS: Final[tuple[UserFolderPattern, ...]] = (
 DEVELOPER_FOLDER_PATTERNS: Final[tuple[UserFolderPattern, ...]] = (
     UserFolderPattern(
         name="vs_source",
-        category=LocationCategory.DEVELOPER_CONTENT,
+        category=LocationCategory.SOURCE_CODE,
         anchor=FolderAnchor.PROFILE,
         segments=("source",),
         match_rule=FolderMatchRule.DIR_EXACT,
@@ -622,7 +626,7 @@ DEVELOPER_FOLDER_PATTERNS: Final[tuple[UserFolderPattern, ...]] = (
     ),
     UserFolderPattern(
         name="vs_source_repos",
-        category=LocationCategory.DEVELOPER_CONTENT,
+        category=LocationCategory.SOURCE_CODE,
         anchor=FolderAnchor.PROFILE,
         segments=("source", "repos"),
         match_rule=FolderMatchRule.DIR_EXACT,
@@ -636,7 +640,7 @@ DEVELOPER_FOLDER_PATTERNS: Final[tuple[UserFolderPattern, ...]] = (
     ),
     UserFolderPattern(
         name="intellij_idea_projects",
-        category=LocationCategory.DEVELOPER_CONTENT,
+        category=LocationCategory.SOURCE_CODE,
         anchor=FolderAnchor.PROFILE,
         segments=("IdeaProjects",),
         match_rule=FolderMatchRule.DIR_EXACT,
@@ -650,7 +654,7 @@ DEVELOPER_FOLDER_PATTERNS: Final[tuple[UserFolderPattern, ...]] = (
     ),
     UserFolderPattern(
         name="rider_projects",
-        category=LocationCategory.DEVELOPER_CONTENT,
+        category=LocationCategory.SOURCE_CODE,
         anchor=FolderAnchor.PROFILE,
         segments=("RiderProjects",),
         match_rule=FolderMatchRule.DIR_EXACT,
@@ -664,7 +668,7 @@ DEVELOPER_FOLDER_PATTERNS: Final[tuple[UserFolderPattern, ...]] = (
     ),
     UserFolderPattern(
         name="eclipse_workspace",
-        category=LocationCategory.DEVELOPER_CONTENT,
+        category=LocationCategory.SOURCE_CODE,
         anchor=FolderAnchor.PROFILE,
         segments=("workspace",),
         match_rule=FolderMatchRule.DIR_EXACT,
@@ -678,7 +682,7 @@ DEVELOPER_FOLDER_PATTERNS: Final[tuple[UserFolderPattern, ...]] = (
     ),
     UserFolderPattern(
         name="eclipse_workspace_alt",
-        category=LocationCategory.DEVELOPER_CONTENT,
+        category=LocationCategory.SOURCE_CODE,
         anchor=FolderAnchor.PROFILE,
         segments=("eclipse-workspace",),
         match_rule=FolderMatchRule.DIR_EXACT,
@@ -692,7 +696,7 @@ DEVELOPER_FOLDER_PATTERNS: Final[tuple[UserFolderPattern, ...]] = (
     ),
     UserFolderPattern(
         name="netbeans_projects",
-        category=LocationCategory.DEVELOPER_CONTENT,
+        category=LocationCategory.SOURCE_CODE,
         anchor=FolderAnchor.PROFILE,
         segments=("NetBeansProjects",),
         match_rule=FolderMatchRule.DIR_EXACT,
@@ -706,7 +710,7 @@ DEVELOPER_FOLDER_PATTERNS: Final[tuple[UserFolderPattern, ...]] = (
     ),
     UserFolderPattern(
         name="generic_projects",
-        category=LocationCategory.DEVELOPER_CONTENT,
+        category=LocationCategory.SOURCE_CODE,
         anchor=FolderAnchor.PROFILE,
         segments=("projects",),
         match_rule=FolderMatchRule.DIR_EXACT,
@@ -720,7 +724,7 @@ DEVELOPER_FOLDER_PATTERNS: Final[tuple[UserFolderPattern, ...]] = (
     ),
     UserFolderPattern(
         name="generic_code",
-        category=LocationCategory.DEVELOPER_CONTENT,
+        category=LocationCategory.SOURCE_CODE,
         anchor=FolderAnchor.PROFILE,
         segments=("code",),
         match_rule=FolderMatchRule.DIR_EXACT,
@@ -734,7 +738,7 @@ DEVELOPER_FOLDER_PATTERNS: Final[tuple[UserFolderPattern, ...]] = (
     ),
     UserFolderPattern(
         name="generic_dev",
-        category=LocationCategory.DEVELOPER_CONTENT,
+        category=LocationCategory.SOURCE_CODE,
         anchor=FolderAnchor.PROFILE,
         segments=("dev",),
         match_rule=FolderMatchRule.DIR_EXACT,
@@ -1210,7 +1214,7 @@ def _validate_configuration() -> None:
             problems.append(f"{where}: empty rationale")
 
     for pattern in DEVELOPER_FOLDER_PATTERNS:
-        if pattern.category is not LocationCategory.DEVELOPER_CONTENT:
+        if pattern.category is not LocationCategory.SOURCE_CODE:
             problems.append(
                 f"developer pattern {pattern.name!r} must use the DeveloperContent category"
             )
