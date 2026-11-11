@@ -948,3 +948,265 @@ def test_precedence_and_defaults_are_complete_and_duplicate_free():
     assert len(set(CATEGORY_PRECEDENCE)) == len(CATEGORY_PRECEDENCE)
     assert len(SEVERITY_ORDER) == 3
     assert len(CONFIDENCE_ORDER) == 3
+
+
+# ---------------------------------------------------------------------------
+# 12. Import-time validation failure paths (fail-fast contract)
+# ---------------------------------------------------------------------------
+# The module enforces a strict fail-fast contract at import time via
+# ``_validate_configuration()``. A defective heuristic table must never
+# silently corrupt classifier output on a stressed user's machine. These
+# tests monkeypatch module globals to trigger every validation branch and
+# verify that the appropriate ValueError is raised.
+
+def _make_bad_folder_pattern(**kwargs):
+    defaults = dict(
+        name="bad_folder",
+        category=LocationCategory.DOCUMENTS,
+        anchor=FolderAnchor.PROFILE,
+        segments=("Documents",),
+        match_rule=FolderMatchRule.DIR_EXACT,
+        default_severity="Low",
+        default_confidence="High",
+        requires_non_empty=False,
+        rationale="test",
+    )
+    defaults.update(kwargs)
+    return UserFolderPattern(**defaults)
+
+def _make_bad_portable_pattern(**kwargs):
+    defaults = dict(
+        name="bad_portable",
+        kind=PortableLayoutKind.DIR_NAME,
+        pattern_text=r"test",
+        score=10,
+        default_confidence="Medium",
+        rationale="test",
+    )
+    defaults.update(kwargs)
+    return PortablePattern(**defaults)
+
+def _make_bad_exclusion_rule(**kwargs):
+    defaults = dict(
+        name="bad_rule",
+        category=ExclusionCategory.TEMP_CACHE,
+        exact_segments=frozenset({"temp"}),
+        consecutive_segments=(("temp", "cache"),),
+        blocks_traversal=True,
+        rationale="test",
+    )
+    defaults.update(kwargs)
+    return ExclusionRule(**defaults)
+
+def test_validate_config_empty_version(monkeypatch):
+    monkeypatch.setattr(hp, "HEURISTIC_PATTERNS_VERSION", "")
+    with pytest.raises(ValueError, match="HEURISTIC_PATTERNS_VERSION is empty"):
+        hp._validate_configuration()
+
+def test_validate_config_bad_severity_order(monkeypatch):
+    monkeypatch.setattr(hp, "SEVERITY_ORDER", ("Low", "Medium"))
+    with pytest.raises(ValueError, match="SEVERITY_ORDER must be exactly"):
+        hp._validate_configuration()
+
+def test_validate_config_bad_confidence_order(monkeypatch):
+    monkeypatch.setattr(hp, "CONFIDENCE_ORDER", ("Low", "Medium"))
+    with pytest.raises(ValueError, match="CONFIDENCE_ORDER must be exactly"):
+        hp._validate_configuration()
+
+def test_validate_config_folder_empty_name(monkeypatch):
+    bad = _make_bad_folder_pattern(name="")
+    monkeypatch.setattr(hp, "ALL_FOLDER_PATTERNS", (bad,))
+    with pytest.raises(ValueError, match="empty name"):
+        hp._validate_configuration()
+
+def test_validate_config_folder_duplicate_name(monkeypatch):
+    bad = _make_bad_folder_pattern(name=hp.ALL_FOLDER_PATTERNS[0].name)
+    monkeypatch.setattr(hp, "ALL_FOLDER_PATTERNS", (bad,) + hp.ALL_FOLDER_PATTERNS)
+    with pytest.raises(ValueError, match="duplicate pattern name"):
+        hp._validate_configuration()
+
+def test_validate_config_folder_empty_segments(monkeypatch):
+    bad = _make_bad_folder_pattern(segments=())
+    monkeypatch.setattr(hp, "ALL_FOLDER_PATTERNS", (bad,))
+    with pytest.raises(ValueError, match="empty segments"):
+        hp._validate_configuration()
+
+def test_validate_config_folder_invalid_segment(monkeypatch):
+    bad = _make_bad_folder_pattern(segments=("Doc\\uments",))
+    monkeypatch.setattr(hp, "ALL_FOLDER_PATTERNS", (bad,))
+    with pytest.raises(ValueError, match="invalid segment"):
+        hp._validate_configuration()
+
+def test_validate_config_folder_unknown_severity(monkeypatch):
+    bad = _make_bad_folder_pattern(default_severity="Critical")
+    monkeypatch.setattr(hp, "ALL_FOLDER_PATTERNS", (bad,))
+    with pytest.raises(ValueError, match="unknown severity"):
+        hp._validate_configuration()
+
+def test_validate_config_folder_unknown_confidence(monkeypatch):
+    bad = _make_bad_folder_pattern(default_confidence="Certain")
+    monkeypatch.setattr(hp, "ALL_FOLDER_PATTERNS", (bad,))
+    with pytest.raises(ValueError, match="unknown confidence"):
+        hp._validate_configuration()
+
+def test_validate_config_folder_empty_rationale(monkeypatch):
+    bad = _make_bad_folder_pattern(rationale="   ")
+    monkeypatch.setattr(hp, "ALL_FOLDER_PATTERNS", (bad,))
+    with pytest.raises(ValueError, match="empty rationale"):
+        hp._validate_configuration()
+
+def test_validate_config_developer_wrong_category(monkeypatch):
+    bad = _make_bad_folder_pattern(name="dev_test", category=LocationCategory.DOCUMENTS)
+    monkeypatch.setattr(hp, "DEVELOPER_FOLDER_PATTERNS", (bad,))
+    with pytest.raises(ValueError, match="must use the DeveloperContent category"):
+        hp._validate_configuration()
+
+def test_validate_config_developer_wrong_anchor(monkeypatch):
+    bad = _make_bad_folder_pattern(
+        name="dev_test", category=LocationCategory.SOURCE_CODE, 
+        anchor=FolderAnchor.DRIVE, requires_non_empty=True
+    )
+    monkeypatch.setattr(hp, "DEVELOPER_FOLDER_PATTERNS", (bad,))
+    with pytest.raises(ValueError, match="must be profile-anchored"):
+        hp._validate_configuration()
+
+def test_validate_config_developer_not_requires_non_empty(monkeypatch):
+    bad = _make_bad_folder_pattern(
+        name="dev_test", category=LocationCategory.SOURCE_CODE, 
+        anchor=FolderAnchor.PROFILE, requires_non_empty=False
+    )
+    monkeypatch.setattr(hp, "DEVELOPER_FOLDER_PATTERNS", (bad,))
+    with pytest.raises(ValueError, match="must be profile-anchored"):
+        hp._validate_configuration()
+
+def test_validate_config_onedrive_wrong_category(monkeypatch):
+    bad = _make_bad_folder_pattern(name="od_test", category=LocationCategory.DOCUMENTS)
+    monkeypatch.setattr(hp, "ONEDRIVE_FOLDER_PATTERNS", (bad,))
+    with pytest.raises(ValueError, match="must use the OneDrive category"):
+        hp._validate_configuration()
+
+def test_validate_config_portable_empty_name(monkeypatch):
+    bad = _make_bad_portable_pattern(name="")
+    monkeypatch.setattr(hp, "PORTABLE_PATTERNS", (bad,))
+    with pytest.raises(ValueError, match="empty name"):
+        hp._validate_configuration()
+
+def test_validate_config_portable_duplicate_name(monkeypatch):
+    bad = _make_bad_portable_pattern(name=hp.PORTABLE_PATTERNS[0].name)
+    monkeypatch.setattr(hp, "PORTABLE_PATTERNS", (bad,) + hp.PORTABLE_PATTERNS)
+    with pytest.raises(ValueError, match="duplicate pattern name"):
+        hp._validate_configuration()
+
+def test_validate_config_portable_bad_score(monkeypatch):
+    bad = _make_bad_portable_pattern(score=0)
+    monkeypatch.setattr(hp, "PORTABLE_PATTERNS", (bad,))
+    with pytest.raises(ValueError, match="score must be a positive integer"):
+        hp._validate_configuration()
+
+def test_validate_config_portable_bool_score(monkeypatch):
+    bad = _make_bad_portable_pattern(score=True)
+    monkeypatch.setattr(hp, "PORTABLE_PATTERNS", (bad,))
+    with pytest.raises(ValueError, match="score must be a positive integer"):
+        hp._validate_configuration()
+
+def test_validate_config_portable_unknown_confidence(monkeypatch):
+    bad = _make_bad_portable_pattern(default_confidence="Certain")
+    monkeypatch.setattr(hp, "PORTABLE_PATTERNS", (bad,))
+    with pytest.raises(ValueError, match="unknown confidence"):
+        hp._validate_configuration()
+
+def test_validate_config_portable_empty_rationale(monkeypatch):
+    bad = _make_bad_portable_pattern(rationale="  ")
+    monkeypatch.setattr(hp, "PORTABLE_PATTERNS", (bad,))
+    with pytest.raises(ValueError, match="empty rationale"):
+        hp._validate_configuration()
+
+def test_validate_config_exclusion_empty_name(monkeypatch):
+    bad = _make_bad_exclusion_rule(name="")
+    monkeypatch.setattr(hp, "DEFAULT_EXCLUSION_RULES", (bad,))
+    with pytest.raises(ValueError, match="empty name"):
+        hp._validate_configuration()
+
+def test_validate_config_exclusion_duplicate_name(monkeypatch):
+    bad = _make_bad_exclusion_rule(name=hp.DEFAULT_EXCLUSION_RULES[0].name)
+    monkeypatch.setattr(hp, "DEFAULT_EXCLUSION_RULES", (bad,) + hp.DEFAULT_EXCLUSION_RULES)
+    with pytest.raises(ValueError, match="duplicate rule name"):
+        hp._validate_configuration()
+
+def test_validate_config_exclusion_bad_exact_segment(monkeypatch):
+    bad = _make_bad_exclusion_rule(exact_segments=frozenset({"Temp"}))
+    monkeypatch.setattr(hp, "DEFAULT_EXCLUSION_RULES", (bad,))
+    with pytest.raises(ValueError, match="exact segment must be a non-empty lowercase name"):
+        hp._validate_configuration()
+
+def test_validate_config_exclusion_empty_consecutive_run(monkeypatch):
+    bad = _make_bad_exclusion_rule(consecutive_segments=((),))
+    monkeypatch.setattr(hp, "DEFAULT_EXCLUSION_RULES", (bad,))
+    with pytest.raises(ValueError, match="empty consecutive-segment run"):
+        hp._validate_configuration()
+
+def test_validate_config_exclusion_bad_consecutive_segment(monkeypatch):
+    bad = _make_bad_exclusion_rule(consecutive_segments=(("Temp", "cache"),))
+    monkeypatch.setattr(hp, "DEFAULT_EXCLUSION_RULES", (bad,))
+    with pytest.raises(ValueError, match="consecutive segment must be a non-empty lowercase name"):
+        hp._validate_configuration()
+
+def test_validate_config_exclusion_empty_rationale(monkeypatch):
+    bad = _make_bad_exclusion_rule(rationale="")
+    monkeypatch.setattr(hp, "DEFAULT_EXCLUSION_RULES", (bad,))
+    with pytest.raises(ValueError, match="empty rationale"):
+        hp._validate_configuration()
+
+def test_validate_config_precedence_duplicates(monkeypatch):
+    bad_prec = (LocationCategory.DOCUMENTS, LocationCategory.DOCUMENTS) + tuple(c for c in LocationCategory if c != LocationCategory.DOCUMENTS)
+    monkeypatch.setattr(hp, "CATEGORY_PRECEDENCE", bad_prec)
+    with pytest.raises(ValueError, match="CATEGORY_PRECEDENCE contains duplicates"):
+        hp._validate_configuration()
+
+def test_validate_config_precedence_missing_category(monkeypatch):
+    bad_prec = tuple(c for c in LocationCategory if c != LocationCategory.DOCUMENTS)
+    monkeypatch.setattr(hp, "CATEGORY_PRECEDENCE", bad_prec)
+    with pytest.raises(ValueError, match="CATEGORY_PRECEDENCE must cover every LocationCategory"):
+        hp._validate_configuration()
+
+def test_validate_config_severity_defaults_missing_category(monkeypatch):
+    bad_sev = {k: v for k, v in hp.SEVERITY_DEFAULTS.items() if k != LocationCategory.DOCUMENTS}
+    monkeypatch.setattr(hp, "SEVERITY_DEFAULTS", bad_sev)
+    with pytest.raises(ValueError, match="SEVERITY_DEFAULTS must define a severity"):
+        hp._validate_configuration()
+
+def test_validate_config_severity_defaults_unknown_severity(monkeypatch):
+    bad_sev = dict(hp.SEVERITY_DEFAULTS)
+    bad_sev[LocationCategory.DOCUMENTS] = "Critical"
+    monkeypatch.setattr(hp, "SEVERITY_DEFAULTS", bad_sev)
+    with pytest.raises(ValueError, match="unknown severity"):
+        hp._validate_configuration()
+
+def test_validate_config_confidence_defaults_missing_category(monkeypatch):
+    bad_conf = {k: v for k, v in hp.CONFIDENCE_DEFAULTS.items() if k != LocationCategory.DOCUMENTS}
+    monkeypatch.setattr(hp, "CONFIDENCE_DEFAULTS", bad_conf)
+    with pytest.raises(ValueError, match="CONFIDENCE_DEFAULTS must define a confidence"):
+        hp._validate_configuration()
+
+def test_validate_config_confidence_defaults_unknown_confidence(monkeypatch):
+    bad_conf = dict(hp.CONFIDENCE_DEFAULTS)
+    bad_conf[LocationCategory.DOCUMENTS] = "Certain"
+    monkeypatch.setattr(hp, "CONFIDENCE_DEFAULTS", bad_conf)
+    with pytest.raises(ValueError, match="unknown confidence"):
+        hp._validate_configuration()
+
+def test_validate_config_bounds_bad_depth(monkeypatch):
+    # We must bypass the dataclass __post_init__ to inject an invalid bound 
+    # into the module-level default for the validator to catch.
+    bad_bounds = hp.HeuristicBounds()
+    object.__setattr__(bad_bounds, "max_directory_depth", 100)
+    monkeypatch.setattr(hp, "DEFAULT_HEURISTIC_BOUNDS", bad_bounds)
+    with pytest.raises(ValueError, match="max_directory_depth must be an integer between 1 and 64"):
+        hp._validate_configuration()
+
+def test_validate_config_bounds_bad_count(monkeypatch):
+    bad_bounds = hp.HeuristicBounds()
+    object.__setattr__(bad_bounds, "max_filesystem_entries_per_source", -1)
+    monkeypatch.setattr(hp, "DEFAULT_HEURISTIC_BOUNDS", bad_bounds)
+    with pytest.raises(ValueError, match="max_filesystem_entries_per_source must be a positive integer"):
+        hp._validate_configuration()
