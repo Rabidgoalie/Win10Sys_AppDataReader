@@ -53,93 +53,56 @@ win10-disaster-recovery/
 
 ---
 
-## 2. Implementation Roadmap
+## 2. Implementation Roadmap (Plus Context Mapping)
+Each module must be accompanied by a unit test suite. To be marked as completed, the module must pass all unit tests.
 
-### Phase 1: Scaffolding and Core Models
+> *When prompting the local LLM for a specific file, attach **only** the documents listed below. This keeps the context window focused and prevents the model from getting confused by irrelevant UI wireframes when writing backend database logic.*
 
-- [x] `setup.sh`
-- [x] `requirements.txt`
-- [x] `requirements-dev.txt`
-- [x] `src/models.py`
-- [x] `src/pathnorm.py`
-- [ ] configuration modules
-- [ ] deterministic hash contracts
-- [ ] DTO contracts
+#### Phase 1: Scaffolding and Core Models
+| Completed | Target File | Description | Attach These SDLC Documents | Why? |
+| :--- | :--- | :--- | :--- | :--- |
+| ✅ | `setup.sh` | Orchestrates bootstrap checks, venv creation, Python version validation, and dependency installation. | **SRS, SDD, ADR** | Needs bootstrap constraints (ADR-2), environment validation rules (SDD 2.1), and host-package boundaries (SRS 2.3). |
+| ✅ | `requirements.txt` | Declares pinned runtime Python dependencies required by the virtual environment. | **SRS, SDD, ADR** | Needs Python version and runtime package isolation constraints (SRS 2.3, ADR-2). |
+| ✅ | `requirements-dev.txt` | Declares development, testing, and coverage packages required for the test suite. | **SDD, ADR** | Needs test dependency isolation and automated verification constraints (SDD 2.20, NFR-10). |
+| ✅ | `src/models.py` | Defines immutable DTOs and dataclasses representing domain entities like devices, sources, and profiles. | **SDD, DDD** | Needs exact dataclass definitions (SDD 2.3) and database entity mapping (DDD 3 & 4). |
+| ✅ | `src/pathnorm.py` | Normalizes Windows-style paths and computes deterministic evidence hashes for identity mapping. | **SDD, DDD** | Needs normative normalization rules (SDD 2.4) and evidence hash canonicalization rules (DDD 5). |
+| ✅ | `src/config/evidence_locations.py` | Declares registry evidence roots, hive types, and parse bounds derived from Appendix A. | **SRS, SDD** | Needs the exact registry paths from Appendix A (SRS) and configuration bounds (SDD 2.5). |
+|  | `src/config/heuristic_patterns.py` | Defines pattern collections for portable apps, OneDrive paths, and workspace directories. | **SRS, SDD** | Needs IDE/OneDrive patterns (SDD 2.6) and classification logic constraints (SRS FR-4). |
 
-### Phase 2: Persistence and Mount Safety
+#### Phase 2: Persistence and Mount Safety
+| Completed | Target File | Description | Attach These SDLC Documents | Why? |
+| :--- | :--- | :--- | :--- | :--- |
+|  | `src/db.py` | Manages SQLite connection pooling, schema migrations, and serialized write transactions. | **DDD, SDD, ADR** | Needs the exact SQLite schema, indexes, and constraints (DDD), thread-safety rules (SDD 2.17), and evidence-first model (ADR-6). |
+|  | `src/mount_manager.py` | Handles `lsblk` discovery, safe read-only `ntfs-3g` mounting, and unmount confirmation flows. | **SRS, SDD, ADR** | **CRITICAL:** Needs `lsblk` JSON parsing rules, `ntfs-3g` safe mount contracts (SRS 3.8), unmount confirmation flows (ADR-5), and privilege boundaries (ADR-11). |
 
-- [ ] SQLite schema initialization
-- [ ] warning storage
-- [ ] source persistence
-- [ ] block device discovery
-- [ ] safe read-only mounting
-- [ ] safe unmount confirmation flow
-- [ ] mount cleanup handlers
-- [ ] privilege invocation boundaries
-- [ ] critical I/O failure handling
+#### Phase 3: Evidence Ingestion
+| Completed | Target File | Description | Attach These SDLC Documents | Why? |
+| :--- | :--- | :--- | :--- | :--- |
+|  | `src/ingest/hive_locator.py` | Discovers offline software, system, and user registry hives while handling missing hive errors. | **SRS, SDD** | Needs machine/user hive discovery rules and missing hive warning handling (SDD 2.9, SRS FR-2.4). |
+|  | `src/ingest/user_profile_parser.py` | Parses `ProfileList`, resolves user shell folders, and detects IDE workspace directories. | **SRS, SDD, DDD** | Needs ProfileList parsing, shell-folder resolution, and IDE workspace detection (SDD 2.11, SRS FR-2.5, DDD USER_PROFILE). |
+|  | `src/ingest/registry_parser.py` | Extracts offline registry evidence across native and WOW6432Node views with ROT13 decoding. | **SRS, SDD, ADR** | Needs `regipy` error boundaries, WOW6432Node handling, UserAssist ROT13 decoding, and AppCompatCache logic (SRS Appendix A, ADR-6). |
+|  | `src/ingest/manifest_generator.py` | Invokes `ntfsls` to generate recursive filesystem manifests without modifying source media. | **SRS, SDD, ADR** | Needs `ntfsls` subprocess invocation, safe output path enforcement, and read-only guarantees (SRS FR-1.6, ADR-1). |
+|  | `src/ingest/manifest_parser.py` | Parses generated manifest files line-by-line using bounded memory processing. | **SRS, SDD** | Needs streaming line-by-line parsing, malformed line counting, and memory bounding (SRS FR-1.7, SDD 2.12). |
+|  | `src/ingest/portable_scanner.py` | Identifies portable application candidates and executable bundles via metadata heuristics. | **SRS, SDD, ADR** | Needs heuristic layout detection without opening file contents (SRS FR-3, ADR-7). |
 
-### Phase 3: Evidence Ingestion
+#### Phase 4: Correlation and Heuristics
+| Completed | Target File | Description | Attach These SDLC Documents | Why? |
+| :--- | :--- | :--- | :--- | :--- |
+|  | `src/correlator.py` | Groups persisted evidence into source-scoped application records with deterministic hashes. | **SRS, SDD, DDD** | Needs deterministic identity hashing (DDD 6), source-scoping rules, and fingerprint status assignment (SRS FR-2.7). |
+|  | `src/heuristics/user_data_classifier.py` | Classifies user content locations, checks Documents baselines, and computes severity/confidence. | **SRS, SDD, DDD** | Needs Documents baseline comparison, severity/confidence models, and finding deduplication (SRS FR-4, DDD USER_DATA_FINDING). |
+|  | `src/heuristics/exclusions.py` | Filters out noisy system directories, cache paths, and VCS metadata to reduce false positives. | **SRS, SDD** | Needs default exclusion categories to prevent false positives in caches and VCS metadata (SDD 2.16). |
 
-- [ ] hive locator
-- [ ] user profile parser
-- [ ] registry evidence parser
-- [ ] evidence persistence batching
-- [ ] manifest generator
-- [ ] manifest parser
-- [ ] portable scanner
-- [ ] bounded enumeration warnings
+#### Phase 5: State and Coordination
+| Completed | Target File | Description | Attach These SDLC Documents | Why? |
+| :--- | :--- | :--- | :--- | :--- |
+|  | `src/state.py` | Handles JSON report serialization, schema compatibility validation, and Triage Mode hydration. | **SRS, SDD, DDD, ADR** | Needs JSON report schema, hydration rules, Triage Mode state transitions, and schema version validation (SRS FR-6, DDD 8 & 9, ADR-3). |
+|  | `src/coordinator.py` | Manages background worker threads, queue communication, cancellation, and critical I/O errors. | **SRS, SDD, ADR** | Needs thread-safe queue emission, typed progress events, critical I/O failure handling, and cancellation logic (SDD 2.19, ADR-4, ADR-12). |
 
-### Phase 4: Correlation and Heuristics
-
-- [ ] evidence correlation from persisted evidence
-- [ ] source-scoped application identity
-- [ ] fingerprint status assignment
-- [ ] portable candidate merging
-- [ ] user-data classification
-- [ ] Documents baseline comparison
-- [ ] Visual Studio source detection
-- [ ] finding deduplication
-- [ ] exclusion handling
-
-### Phase 5: State and Coordination
-
-- [ ] report export
-- [ ] report import
-- [ ] background worker coordinator
-- [ ] typed progress events
-- [ ] throttled UI updates
-- [ ] cancellation handling
-- [ ] critical I/O failure state
-- [ ] cleanup coordination
-
-### Phase 6: Presentation
-
-- [ ] source list panel
-- [ ] source role selection flow
-- [ ] secondary-drive advisory
-- [ ] treeview grid with application and finding rows
-- [ ] details pane
-- [ ] status bar with tooltips and progress indication
-- [ ] TRIAGE mode
-- [ ] export report flow
-- [ ] confirmation dialogs
-
-### Phase 7: Tests
-
-- [x] model construction-validation tests
-- [x] path normalization tests
-- [x] evidence locations tests
-- [ ] heuristic patterns tests
-- [ ] manifest parser tests
-- [ ] registry parser tests with synthetic fixture hives or mocked hive structures
-- [ ] user profile parser tests
-- [ ] portable scanner tests
-- [ ] correlator tests
-- [ ] user-data classifier tests
-- [ ] database tests
-- [ ] report round-trip tests
-- [ ] bounded-enumeration tests
-- [ ] critical failure-state tests
+#### Phase 6: Presentation
+| Completed | Target File | Description | Attach These SDLC Documents | Why? |
+| :--- | :--- | :--- | :--- | :--- |
+|  | `src/ui.py` | Implements the Tkinter GUI, treeview grids, details pane, advisory banner, and Triage mode inputs. | **UIDD, SDD, ADR** | **CRITICAL:** Needs exact Tkinter wireframes, interaction state logic, grid row contracts, theme tokens, and queue consumption (UIDD All, ADR-4). |
+|  | `src/main.py` | Serves as the application entry point, initializes components, and registers cleanup handlers. | **SDD, UIDD** | Needs application entry point, cleanup handler registration, and Tkinter main loop initialization (SDD 2.2). |
 
 ---
 
