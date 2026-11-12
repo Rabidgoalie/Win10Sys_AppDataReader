@@ -125,6 +125,11 @@ __all__ = [
     "ScanFailedEvent",
     "CriticalIoFailureEvent",
     "ErrorEvent",
+    # v1.1.0 Amendment: Runtime coordination types (ADR-5, SRS FR-1.11, UIDD §4)
+    "ConfirmationKind",
+    "DeviceListEvent",
+    "ConfirmationRequestEvent",
+    "SourceRequest",
 ]
 
 
@@ -2052,3 +2057,62 @@ class ErrorEvent(UiEvent):
 
     message: str
     category: WarningCategory = WarningCategory.GENERAL
+
+
+# ---------------------------------------------------------------------------
+# v1.1.0 Amendment: Runtime coordination types (ADR-5, SRS FR-1.11, UIDD §4)
+# ---------------------------------------------------------------------------
+
+class ConfirmationKind(StrEnum):
+    """Mid-preparation confirmation kinds (ADR-5, SRS FR-1.11)."""
+    UNMOUNT_EXTERNAL = "unmount_external"
+    LAZY_UNMOUNT = "lazy_unmount"
+
+
+@dataclass(frozen=True, slots=True)
+class DeviceListEvent(UiEvent):
+    """Add Source flow (SRS FR-1.2, UIDD §4).
+    
+    Emitted by the coordinator when the UI requests a device list.
+    If lsblk fails, devices=() and error is set.
+    """
+    devices: tuple[BlockDevice, ...] = ()
+    error: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ConfirmationRequestEvent(UiEvent):
+    """Worker asks UI to confirm a privileged unmount step (ADR-5).
+    
+    The worker blocks on a threading.Event until the UI answers via
+    Coordinator.answer_confirmation(request_id, approved).
+    """
+    kind: ConfirmationKind
+    message: str
+    details: tuple[str, ...]
+    request_id: str = field(default_factory=new_id)
+
+
+@dataclass(frozen=True, slots=True)
+class SourceRequest:
+    """One user-confirmed selection (UIDD §4), pre-session.
+    
+    Bridges pre-session UI selections to session-scoped SourceRecord
+    construction in Coordinator.start_session.
+    """
+    role: SourceRole
+    acquisition_method: AcquisitionMethod
+    device_path: str | None
+    manifest_path: str | None
+    label: str | None
+
+    def __post_init__(self) -> None:
+        if self.acquisition_method is AcquisitionMethod.NTFS3G_RO and not self.device_path:
+            raise ValueError("ntfs3g_ro acquisition requires a device_path.")
+        if self.acquisition_method is AcquisitionMethod.NTFSLS_MANIFEST:
+            if not self.device_path and not self.manifest_path:
+                raise ValueError("ntfsls_manifest acquisition requires a device_path or manifest_path.")
+            if self.role is not SourceRole.SECONDARY_DATA:
+                raise ValueError(
+                    "Manifest-backed requests must be SECONDARY_DATA (SRS FR-1.3/FR-1.5)."
+                )
