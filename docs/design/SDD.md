@@ -226,6 +226,7 @@ generate_manifest(
     device_path: str,
     output_path: Path,
     progress_callback: Callable | None = None,
+    cancel_event: threading.Event | None = None,
 ) -> ManifestGenerationResult
 ```
 
@@ -293,6 +294,7 @@ enumerate_registry_evidence(
     source: PreparedSource,
     hives: HiveSet,
     options: RegistryParseOptions,
+    cancel_event: threading.Event | None = None,
 ) -> Iterator[RegistryEvidence]
 ```
 
@@ -320,7 +322,10 @@ Responsibilities:
 Core API:
 
 ```text
-parse_user_profiles(source: PreparedSource) -> Iterator[UserProfile]
+parse_user_profiles(
+    source: PreparedSource,
+    cancel_event: threading.Event | None = None
+) -> Iterator[UserProfile]
 ```
 
 ---
@@ -347,6 +352,7 @@ Core API:
 parse_manifest(
     manifest_path: Path,
     source: PreparedSource,
+    cancel_event: threading.Event | None = None
 ) -> Iterator[ManifestEvidence]
 ```
 
@@ -374,6 +380,7 @@ Core API:
 discover_portable_candidates(
     source: PreparedSource,
     evidence_stream: Iterable[PersistedEvidence],
+    cancel_event: threading.Event | None = None,
 ) -> Iterator[PortableCandidate]
 ```
 
@@ -401,6 +408,7 @@ Core API:
 correlate_evidence(
     evidence_rows: Iterable[PersistedEvidence],
     portable_candidates: Iterable[PortableCandidate],
+    cancel_event: threading.Event | None = None,
 ) -> Iterator[CorrelatedApplication]
 ```
 
@@ -433,6 +441,7 @@ classify_user_data(
     app: CorrelatedApplication | None,
     profiles: Iterable[UserProfile],
     source: PreparedSource,
+    cancel_event: threading.Event | None = None,
 ) -> Iterator[UserDataFinding]
 ```
 
@@ -556,6 +565,7 @@ Responsibilities:
 - Ensure cleanup is requested on failure.
 - Throttle progress events.
 - Batch result notifications.
+- The coordinator shall own one session `threading.Event` for cancellation, set it on user cancellation and on critical I/O failure, and pass it to every cancellation-aware stage.
 
 Example event types:
 
@@ -677,6 +687,9 @@ Errors shall be user-facing and actionable.
 The UI shall avoid blaming the user.
 
 The UI shall avoid implying that data loss has already occurred.
+
+### 4.7 Cooperative Cancellation
+Long-running ingestion, correlation, classification, and manifest-generation functions accept an optional `cancel_event: threading.Event | None`. Cancellation is cooperative. When the event is set, the function shall stop producing new results within a bounded number of internal steps, shall not initiate new reads against a source drive, shall return normally without raising, and shall leave already-yielded or already-persisted results intact. The coordinator owns all session-state transitions resulting from cancellation. Functions without a `cancel_event` parameter are bounded tightly enough not to require one.
 
 ---
 
