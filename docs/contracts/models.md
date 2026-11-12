@@ -1,6 +1,6 @@
-# Module Contract: `src/models.py` — v1.0.0 FROZEN (Tier 0)
+# Module Contract: ` src/models.py` — v1.1.0 FROZEN (Tier 0)
 
-Frozen: 2026-11-13 · Approver: Project Coordinator ______
+Frozen: 2026-11-13 · Supersedes: v1.0.0 · Approver: Project Coordinator ______
 Baseline: the as-implemented Phase 1 surface (verified against
 `docs/api-ref/models.md` produced by `gen_api.py` from the shipped module).
 Change control: `docs/contracts/README.md`, Freeze Rules 1–5. Any change to
@@ -343,6 +343,27 @@ class CriticalIoFailureEvent(UiEvent):
 class ErrorEvent(UiEvent):
     message: str; category: WarningCategory = WarningCategory.GENERAL
 
+class ConfirmationKind(StrEnum):        # mid-preparation confirmation kinds (ADR-5, SRS FR-1.11)
+    UNMOUNT_EXTERNAL = 'unmount_external'; LAZY_UNMOUNT = 'lazy_unmount'
+
+class DeviceListEvent(UiEvent):         # Add Source flow (SRS FR-1.2, UIDD §4)
+    devices: tuple[BlockDevice, ...]    # default (); lsblk failure -> devices=() + error set
+    error: str | None
+
+class ConfirmationRequestEvent(UiEvent):  # worker asks UI to confirm a privileged unmount step
+    kind: ConfirmationKind; message: str
+    details: tuple[str, ...]            # e.g. existing mount points
+    request_id: str                     # default new_id(); answered via Coordinator.answer_confirmation
+
+@dataclass(frozen=True)
+class SourceRequest:                    # one user-confirmed selection (UIDD §4), pre-session
+    role: SourceRole; acquisition_method: AcquisitionMethod
+    device_path: str | None; manifest_path: str | None; label: str | None
+    # __post_init__ enforces SRS FR-1.3/FR-1.5 pairing:
+    #   ntfs3g_ro requires device_path;
+    #   ntfsls_manifest requires device_path (generate) or manifest_path (existing file);
+    #   any manifest-backed request requires role == SECONDARY_DATA.
+
 # ── Module functions ────────────────────────────────────────────────────
 def new_id() -> str: ...
 def utc_now_iso() -> str: ...
@@ -398,3 +419,5 @@ Underscore-prefixed helpers; dataclass-generated dunders; JSON column encoding d
 | Version | Date | Change | Rationale | Approved by |
 |---|---|---|---|---|
 | 1.0.0 | 2026-11-13 | Initial freeze of the as-implemented Phase 1 surface | Phase 1 concluded; rolling-freeze governance begins | Coordinator + Reviewer |
+| 1.1.0 | 2026-11-13 | Added `ConfirmationKind`, `ConfirmationRequestEvent`, `DeviceListEvent`, `SourceRequest` | Purely additive. (1) `DeviceListEvent`: the Add Source flow (UIDD §4) requires NTFS candidates to reach the UI via the event queue (ADR-4); the UI must not run `lsblk` on the Tk thread. (2) `ConfirmationKind` + `ConfirmationRequestEvent`: SRS FR-1.11/ADR-5 unmount confirmations occur mid-preparation on a worker thread; the worker blocks, the UI answers via `Coordinator.answer_confirmation`. (3) `SourceRequest`: bridges pre-session UI selections to session-scoped `SourceRecord` construction in `Coordinator.start_session` (`SourceRecord` requires a `session_id` the UI cannot possess). `SCHEMA_VERSION` unchanged: additions are runtime coordination types only; no DDD table or DDD §8 report field is affected. Obligations created: `ui.py` must dispatch both new events; `coordinator.py` must expose `request_device_list` and `answer_confirmation`. | Coordinator + Reviewer |
+
