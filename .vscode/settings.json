@@ -6,14 +6,5 @@
     "python.testing.pytestArgs": [
         "tests",
         "--cov=src"
-    ],
-    "editor.formatOnSave": true,
-    "emeraldwalk.runonsave": {
-        "commands": [
-            {
-                "match": "\\.py$",
-                "cmd": "python3 \"${workspaceFolder}/gen_api.py\" \"${file}\""
-            }
-        ]
-    }
+    ]
 }
