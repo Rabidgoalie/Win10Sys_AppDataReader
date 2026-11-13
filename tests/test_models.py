@@ -41,8 +41,11 @@ from src.models import (
     AcquisitionMethod,
     BlockDevice,
     Confidence,
+    ConfirmationKind,
+    ConfirmationRequestEvent,
     CorrelatedApplication,
     CriticalIoFailureEvent,
+    DeviceListEvent,
     DiscoveryMethod,
     ErrorEvent,
     Evidence,
@@ -50,10 +53,17 @@ from src.models import (
     EvidenceType,
     FindingLocationCategory,
     FingerprintStatus,
+    HiveFile,
+    HiveSet,
+    HiveType,
     IdentityBasis,
+    MachineHiveSet,
+    ManifestEvidence,
+    ManifestGenerationResult,
     PortableCandidate,
     PortableCandidateEvent,
     ProgressEvent,
+    RegistryParseOptions,
     RegistryValue,
     RegistryValueType,
     ScanCompletedEvent,
@@ -61,9 +71,11 @@ from src.models import (
     ScanOptions,
     ScanSession,
     ScanSummary,
+    SessionBundle,
     SeverityLevel,
     SourcePreparedEvent,
     SourceRecord,
+    SourceRequest,
     SourceRole,
     SourceStatus,
     SourceType,
@@ -72,12 +84,14 @@ from src.models import (
     UserDataFindingEvent,
     UserProfile,
     UserProfileParsedEvent,
+    UserHiveSet,
     WarningCategory,
     WarningEvent,
     WarningRecord,
     WarningSeverity,
     ApplicationCorrelatedEvent,
     PreparedSource,
+    PersistedEvidence,
     compute_evidence_hash,
     compute_identity_hash,
     name_publisher_version_key,
@@ -88,6 +102,7 @@ from src.models import (
     canon_lower_path,
     canon_source_relative_path,
     canonical_path_structure,
+    canonical_product_code,
 )
 
 # ---------------------------------------------------------------------------
@@ -866,3 +881,383 @@ class TestCodifiedReviewFindings:
         parsed = datetime.fromisoformat(stamp)
         assert parsed.tzinfo is not None
         assert parsed.utcoffset() == timedelta(0)
+
+
+# ---------------------------------------------------------------------------
+# Coverage Expansion: v1.1.0 Mid-Preparation Confirmations
+# ---------------------------------------------------------------------------
+
+class TestMidPreparationConfirmations:
+    """Coverage for v1.1.0 amendment: runtime coordination types."""
+
+    def test_confirmation_kind_values(self) -> None:
+        assert ConfirmationKind.UNMOUNT_EXTERNAL == "unmount_external"
+        assert ConfirmationKind.LAZY_UNMOUNT == "lazy_unmount"
+
+    def test_device_list_event_construction(self) -> None:
+        dev = BlockDevice("/dev/sda1", "sda1", "part", fs_type="ntfs")
+        evt = DeviceListEvent(devices=(dev,), error=None, source_id=EVENT_SOURCE_ID)
+        assert evt.devices == (dev,)
+        assert evt.error is None
+        
+        evt_err = DeviceListEvent(error="lsblk failed", source_id=EVENT_SOURCE_ID)
+        assert evt_err.devices == ()
+        assert evt_err.error == "lsblk failed"
+
+    def test_confirmation_request_event_construction(self) -> None:
+        evt = ConfirmationRequestEvent(
+            kind=ConfirmationKind.UNMOUNT_EXTERNAL,
+            message="Unmount /dev/sda1?",
+            details=("/mnt/sda1",),
+            source_id=EVENT_SOURCE_ID,
+        )
+        assert evt.kind == ConfirmationKind.UNMOUNT_EXTERNAL
+        assert len(evt.request_id) == 36  # default factory new_id()
+
+    def test_source_request_valid_ntfs3g_ro(self) -> None:
+        req = SourceRequest(
+            role=SourceRole.WINDOWS_OS,
+            acquisition_method=AcquisitionMethod.NTFS3G_RO,
+            device_path="/dev/sda1",
+            manifest_path=None,
+            label="Windows",
+        )
+        assert req.device_path == "/dev/sda1"
+
+    def test_source_request_invalid_ntfs3g_ro_missing_device(self) -> None:
+        with pytest.raises(ValueError, match="ntfs3g_ro acquisition requires a device_path"):
+            SourceRequest(
+                role=SourceRole.WINDOWS_OS,
+                acquisition_method=AcquisitionMethod.NTFS3G_RO,
+                device_path=None,
+                manifest_path=None,
+                label="Windows",
+            )
+
+    def test_source_request_valid_ntfsls_manifest_generate(self) -> None:
+        req = SourceRequest(
+            role=SourceRole.SECONDARY_DATA,
+            acquisition_method=AcquisitionMethod.NTFSLS_MANIFEST,
+            device_path="/dev/sdb1",
+            manifest_path=None,
+            label="Data",
+        )
+        assert req.device_path == "/dev/sdb1"
+
+    def test_source_request_valid_ntfsls_manifest_existing(self) -> None:
+        req = SourceRequest(
+            role=SourceRole.SECONDARY_DATA,
+            acquisition_method=AcquisitionMethod.NTFSLS_MANIFEST,
+            device_path=None,
+            manifest_path="/tmp/manifest.txt",
+            label="Data",
+        )
+        assert req.manifest_path == "/tmp/manifest.txt"
+
+    def test_source_request_invalid_ntfsls_manifest_missing_both(self) -> None:
+        with pytest.raises(ValueError, match="requires a device_path or manifest_path"):
+            SourceRequest(
+                role=SourceRole.SECONDARY_DATA,
+                acquisition_method=AcquisitionMethod.NTFSLS_MANIFEST,
+                device_path=None,
+                manifest_path=None,
+                label="Data",
+            )
+
+    def test_source_request_invalid_ntfsls_manifest_windows_os(self) -> None:
+        with pytest.raises(ValueError, match="Manifest-backed requests must be SECONDARY_DATA"):
+            SourceRequest(
+                role=SourceRole.WINDOWS_OS,
+                acquisition_method=AcquisitionMethod.NTFSLS_MANIFEST,
+                device_path="/dev/sda1",
+                manifest_path=None,
+                label="Windows",
+            )
+
+
+# ---------------------------------------------------------------------------
+# Coverage Expansion: Hive Sets and Pipeline Working Types
+# ---------------------------------------------------------------------------
+
+class TestHiveAndPipelineDTOs:
+    """Coverage for hive sets, pipeline options, and working types."""
+
+    def test_manifest_evidence_is_alias(self) -> None:
+        assert ManifestEvidence is Evidence
+
+    def test_hive_file_and_machine_set_missing_required(self) -> None:
+        sw = HiveFile(HiveType.SOFTWARE, "Windows\\System32\\config\\SOFTWARE", Path("/mnt/SOFTWARE"))
+        m_set = MachineHiveSet(software=sw, system=None)
+        assert m_set.missing_required == (HiveType.SYSTEM,)
+        
+        full_set = MachineHiveSet(software=sw, system=HiveFile(HiveType.SYSTEM, "sys", Path("/mnt/SYSTEM")))
+        assert full_set.missing_required == ()
+
+    def test_hive_set_user_count(self) -> None:
+        u1 = UserHiveSet(username="alice")
+        u2 = UserHiveSet(username="bob")
+        h_set = HiveSet(machine=MachineHiveSet(), users=(u1, u2))
+        assert h_set.user_count == 2
+
+    def test_registry_parse_options_defaults(self) -> None:
+        opts = RegistryParseOptions()
+        assert opts.include_wow64 is True
+        assert opts.max_subkeys_per_key is None
+
+    def test_manifest_generation_result(self) -> None:
+        res = ManifestGenerationResult(
+            ok=True, device_path="/dev/sda1", output_path=Path("/tmp/m.txt")
+        )
+        assert res.entry_count == 0
+        assert res.truncated is False
+
+    def test_scan_summary_and_session_bundle(self) -> None:
+        summary = ScanSummary(evidence_count=10)
+        assert summary.application_count == 0
+        
+        session = ScanSession.new_active()
+        bundle = SessionBundle(session=session)
+        assert bundle.sources == ()
+
+
+# ---------------------------------------------------------------------------
+# Coverage Expansion: PersistedEvidence Projection Logic
+# ---------------------------------------------------------------------------
+
+class TestPersistedEvidenceProjection:
+    """Coverage for PersistedEvidence.from_evidence display/install_path logic."""
+
+    def test_from_evidence_with_file_path(self) -> None:
+        ev = Evidence(
+            session_id=SESSION_ID, source_id=SOURCE_ID,
+            evidence_type=EvidenceType.FILE_EXECUTABLE,
+            file_path="C:\\Program Files\\App\\app.exe"
+        )
+        pev = PersistedEvidence.from_evidence(ev, "ev-1")
+        assert pev.display_name == "app.exe"
+
+    def test_from_evidence_with_value_name(self) -> None:
+        ev = Evidence(
+            session_id=SESSION_ID, source_id=SOURCE_ID,
+            evidence_type=EvidenceType.REGISTRY_UNINSTALL,
+            value_name="DisplayName"
+        )
+        pev = PersistedEvidence.from_evidence(ev, "ev-2")
+        assert pev.display_name == "DisplayName"
+
+    def test_from_evidence_with_key_path(self) -> None:
+        ev = Evidence(
+            session_id=SESSION_ID, source_id=SOURCE_ID,
+            evidence_type=EvidenceType.REGISTRY_UNINSTALL,
+            key_path="Software\\App\\Settings"
+        )
+        pev = PersistedEvidence.from_evidence(ev, "ev-3")
+        assert pev.display_name == "Settings"
+
+    def test_from_evidence_fallback_to_type(self) -> None:
+        ev = Evidence(
+            session_id=SESSION_ID, source_id=SOURCE_ID,
+            evidence_type=EvidenceType.REGISTRY_RUN_KEY
+        )
+        pev = PersistedEvidence.from_evidence(ev, "ev-4")
+        assert pev.display_name == "REGISTRY_RUN_KEY"
+
+    def test_from_evidence_extracts_install_path_from_raw_json(self) -> None:
+        ev = Evidence(
+            session_id=SESSION_ID, source_id=SOURCE_ID,
+            evidence_type=EvidenceType.REGISTRY_UNINSTALL,
+            raw_json='{"install_path": "C:\\\\App"}'
+        )
+        pev = PersistedEvidence.from_evidence(ev, "ev-5")
+        assert pev.install_path == "C:\\App"
+
+    def test_from_evidence_ignores_malformed_raw_json(self) -> None:
+        ev = Evidence(
+            session_id=SESSION_ID, source_id=SOURCE_ID,
+            evidence_type=EvidenceType.REGISTRY_UNINSTALL,
+            raw_json='not json'
+        )
+        pev = PersistedEvidence.from_evidence(ev, "ev-6")
+        assert pev.install_path is None
+
+
+# ---------------------------------------------------------------------------
+# Coverage Expansion: DTO Validations and Properties
+# ---------------------------------------------------------------------------
+
+class TestDTOValidationAndProperties:
+    """Coverage for __post_init__ validations and property methods."""
+
+    def test_block_device_is_mounted(self) -> None:
+        assert BlockDevice("/dev/sda1", "sda1", "part", mount_points=("/mnt",)).is_mounted is True
+        assert BlockDevice("/dev/sda1", "sda1", "part").is_mounted is False
+
+    def test_source_record_from_prepared(self) -> None:
+        prep = PreparedSource(
+            source_id=SOURCE_ID, session_id=SESSION_ID,
+            source_type=SourceType.MOUNTED_BLOCK_DEVICE,
+            source_role=SourceRole.WINDOWS_OS,
+            logical_drive="C:",
+            mount_point="/mnt/c",
+            origin_device_path="/dev/sda1"
+        )
+        rec = SourceRecord.from_prepared(prep)
+        assert rec.status == SourceStatus.READY
+        assert rec.logical_drive == "C:"
+
+    def test_source_record_post_init_failures(self) -> None:
+        with pytest.raises(ValueError, match="read_only must be True"):
+            SourceRecord(
+                source_id=SOURCE_ID, session_id=SESSION_ID,
+                source_type=SourceType.MOUNTED_BLOCK_DEVICE,
+                source_role=SourceRole.WINDOWS_OS,
+                acquisition_method=AcquisitionMethod.NTFS3G_RO,
+                status=SourceStatus.PENDING,
+                read_only=False
+            )
+        with pytest.raises(ValueError, match="windows_os source must be a read-only ntfs-3g mount"):
+            SourceRecord(
+                source_id=SOURCE_ID, session_id=SESSION_ID,
+                source_type=SourceType.MANIFEST_FILE,
+                source_role=SourceRole.WINDOWS_OS,
+                acquisition_method=AcquisitionMethod.NTFSLS_MANIFEST,
+                status=SourceStatus.PENDING,
+            )
+        with pytest.raises(ValueError, match="must carry a mount point"):
+            SourceRecord(
+                source_id=SOURCE_ID, session_id=SESSION_ID,
+                source_type=SourceType.MOUNTED_BLOCK_DEVICE,
+                source_role=SourceRole.SECONDARY_DATA,
+                acquisition_method=AcquisitionMethod.NTFS3G_RO,
+                status=SourceStatus.READY,
+                mount_point=None
+            )
+
+    def test_evidence_post_init_derives_value_data_and_hash(self) -> None:
+        ev = Evidence(
+            session_id=SESSION_ID, source_id=SOURCE_ID,
+            evidence_type=EvidenceType.REGISTRY_UNINSTALL,
+            registry_value=RegistryValue(name="Display", value_type=RegistryValueType.STRING, data="App\x00")
+        )
+        assert ev.value_data == "App"
+        assert len(ev.evidence_hash) == 64
+
+    def test_user_profile_properties(self) -> None:
+        p_with = _user_profile()
+        assert p_with.documents_baseline_known is True
+        
+        p_without = UserProfile(session_id=SESSION_ID, source_id=SOURCE_ID)
+        assert p_without.documents_baseline_known is False
+        
+        p_warn = UserProfile(
+            session_id=SESSION_ID, source_id=SOURCE_ID,
+            parse_warnings_json='["warn1", "warn2"]'
+        )
+        assert p_warn.parse_warnings() == ("warn1", "warn2")
+        
+        p_bad = UserProfile(
+            session_id=SESSION_ID, source_id=SOURCE_ID,
+            parse_warnings_json='not json'
+        )
+        assert p_bad.parse_warnings() == ()
+
+    def test_correlated_application_validations_and_notes(self) -> None:
+        with pytest.raises(ValueError, match="identity_key must be non-empty"):
+            CorrelatedApplication(
+                session_id=SESSION_ID, source_id=SOURCE_ID,
+                identity_basis=IdentityBasis.INSTALL_PATH, identity_key="",
+                display_name="App", discovery_method=DiscoveryMethod.REGISTRY,
+                fingerprint_status=FingerprintStatus.REGISTERED,
+                evidence_confidence=Confidence.HIGH
+            )
+        with pytest.raises(ValueError, match="display_name must be non-empty"):
+            CorrelatedApplication(
+                session_id=SESSION_ID, source_id=SOURCE_ID,
+                identity_basis=IdentityBasis.INSTALL_PATH, identity_key="C:\\App",
+                display_name="  ", discovery_method=DiscoveryMethod.REGISTRY,
+                fingerprint_status=FingerprintStatus.REGISTERED,
+                evidence_confidence=Confidence.HIGH
+            )
+        with pytest.raises(ValueError, match="portable_score must be within 0..100"):
+            CorrelatedApplication(
+                session_id=SESSION_ID, source_id=SOURCE_ID,
+                identity_basis=IdentityBasis.INSTALL_PATH, identity_key="C:\\App",
+                display_name="App", discovery_method=DiscoveryMethod.REGISTRY,
+                fingerprint_status=FingerprintStatus.REGISTERED,
+                evidence_confidence=Confidence.HIGH,
+                portable_score=101
+            )
+            
+        app = _correlated_app()
+        assert app.notes() == {}
+        
+        app_notes = CorrelatedApplication(
+            session_id=SESSION_ID, source_id=SOURCE_ID,
+            identity_basis=IdentityBasis.INSTALL_PATH, identity_key="C:\\App",
+            display_name="App", discovery_method=DiscoveryMethod.REGISTRY,
+            fingerprint_status=FingerprintStatus.REGISTERED,
+            evidence_confidence=Confidence.HIGH,
+            notes_json='{"key": "val"}'
+        )
+        assert app_notes.notes() == {"key": "val"}
+        
+        app_bad = CorrelatedApplication(
+            session_id=SESSION_ID, source_id=SOURCE_ID,
+            identity_basis=IdentityBasis.INSTALL_PATH, identity_key="C:\\App",
+            display_name="App", discovery_method=DiscoveryMethod.REGISTRY,
+            fingerprint_status=FingerprintStatus.REGISTERED,
+            evidence_confidence=Confidence.HIGH,
+            notes_json='not json'
+        )
+        assert app_bad.notes() == {}
+
+    def test_user_data_finding_validations(self) -> None:
+        with pytest.raises(ValueError, match="path and normalized_path must be non-empty"):
+            UserDataFinding(
+                session_id=SESSION_ID, source_id=SOURCE_ID,
+                path="", normalized_path="",
+                location_category=FindingLocationCategory.DOCUMENTS,
+                severity_level=SeverityLevel.HIGH, confidence=Confidence.HIGH,
+                rationale="test"
+            )
+        with pytest.raises(ValueError, match="file_count must be >= 0"):
+            UserDataFinding(
+                session_id=SESSION_ID, source_id=SOURCE_ID,
+                path="C:\\test", normalized_path="c:\\test",
+                location_category=FindingLocationCategory.DOCUMENTS,
+                severity_level=SeverityLevel.HIGH, confidence=Confidence.HIGH,
+                rationale="test", file_count=-1
+            )
+        with pytest.raises(ValueError, match="total_size_bytes must be >= 0"):
+            UserDataFinding(
+                session_id=SESSION_ID, source_id=SOURCE_ID,
+                path="C:\\test", normalized_path="c:\\test",
+                location_category=FindingLocationCategory.DOCUMENTS,
+                severity_level=SeverityLevel.HIGH, confidence=Confidence.HIGH,
+                rationale="test", total_size_bytes=-10
+            )
+
+    def test_warning_record_validation(self) -> None:
+        with pytest.raises(ValueError, match="Warning message must be non-empty"):
+            WarningRecord(
+                session_id=SESSION_ID, category=WarningCategory.GENERAL,
+                severity=WarningSeverity.WARNING, message="   "
+            )
+            
+    def test_portable_candidate_validation(self) -> None:
+        with pytest.raises(ValueError, match="score must be within 0..100"):
+            PortableCandidate(
+                source_id=SOURCE_ID, candidate_path="C:\\App", normalized_path="c:\\app",
+                display_name="App", basis=IdentityBasis.PORTABLE_DIRECTORY,
+                confidence=Confidence.HIGH, score=105, rationale="test"
+            )
+        with pytest.raises(ValueError, match="basis must be a portable identity basis"):
+            PortableCandidate(
+                source_id=SOURCE_ID, candidate_path="C:\\App", normalized_path="c:\\app",
+                display_name="App", basis=IdentityBasis.INSTALL_PATH,
+                confidence=Confidence.HIGH, score=50, rationale="test"
+            )
+
+    def test_canonical_product_code_bare_hex(self) -> None:
+        # Hits the bare 32-hex GUID branch in canonical_product_code
+        assert canonical_product_code("12345678123412341234123456789abc") == "12345678-1234-1234-1234-123456789ABC"

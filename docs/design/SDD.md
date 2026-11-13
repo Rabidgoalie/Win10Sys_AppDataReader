@@ -193,15 +193,50 @@ Unmount contract:
 Core APIs:
 
 ```text
-list_block_devices() -> list[BlockDevice]
+UnmountConfirmCallback = Callable[[str, tuple[str, ...]], bool]
+# (explanation_message, existing_mount_points) -> user_approved
 
-prepare_windows_source(device_path: str, session_id: str) -> PreparedSource
+class MountManager:
+    def __init__(self, base_mount_dir: Path): ...
 
-prepare_secondary_mount(device_path: str, session_id: str) -> PreparedSource
+    # --- Discovery (SRS FR-1.2, UIDD §3–4) ---
+    def list_block_devices(self) -> list[BlockDevice]: ...
+    # Runs `lsblk --json` with explicitly requested fields; parses defensively
+    # (singular/plural mount-point variants, README §5.2); returns ONLY NTFS
+    # candidates per the SDD §2.7 lsblk contract: partitions preferred; whole
+    # disks only when directly NTFS with no partition children; loop, ram,
+    # optical, swap, squashfs, ISO9660, LUKS, and LVM candidates excluded.
+    # Does not require elevation. Never called on the Tk thread (see §2.19).
 
-release_source(source_id: str) -> None
+    # --- Preparation (SRS §3.8, FR-1.11, ADR-5) ---
+    def prepare_source(
+        self,
+        source: SourceRecord,
+        *,
+        confirm_unmount: UnmountConfirmCallback | None = None,
+    ) -> PreparedSource: ...
+    # Dispatches on source_type:
+    #   mounted_block_device -> safe read-only ntfs-3g mount under
+    #     <base_mount_dir>/<source_id>/ (safe option contract, SRS §3.8).
+    #   manifest_file -> validates the manifest exists and is readable;
+    #     no mount, no elevation; returns PreparedSource with mount_point=None.
+    # If the device is externally mounted: invokes confirm_unmount; declines
+    # abort preparation (raise); normal unmount first; lazy unmount only after
+    # a second confirm_unmount invocation.
 
-release_all_sources() -> None
+    # --- Release (SRS §3.8, ADR-5) ---
+    def release_source(self, source_id: str, *,
+                       confirm_lazy: UnmountConfirmCallback | None = None) -> None: ...
+    def release_all(self, *,
+                    confirm_lazy: UnmountConfirmCallback | None = None) -> None: ...
+    # Normal unmount first. Busy volume + callback present -> offer lazy
+    # unmount via callback. Busy + no callback (e.g., during exit when the UI
+    # is gone) -> leave mounted, record for startup sweep, never lazy silently.
+
+    # --- Startup hygiene (README §5.1) ---
+    def sweep_orphans(self) -> list[Path]: ...
+    # Detects application-owned mount dirs under base_mount_dir still present
+    # in /proc/mounts; returns them for guided release.
 ```
 
 ---
@@ -226,6 +261,7 @@ generate_manifest(
     device_path: str,
     output_path: Path,
     progress_callback: Callable | None = None,
+    cancel_event: threading.Event | None = None,
 ) -> ManifestGenerationResult
 ```
 
@@ -293,6 +329,7 @@ enumerate_registry_evidence(
     source: PreparedSource,
     hives: HiveSet,
     options: RegistryParseOptions,
+    cancel_event: threading.Event | None = None,
 ) -> Iterator[RegistryEvidence]
 ```
 
@@ -320,7 +357,10 @@ Responsibilities:
 Core API:
 
 ```text
-parse_user_profiles(source: PreparedSource) -> Iterator[UserProfile]
+parse_user_profiles(
+    source: PreparedSource,
+    cancel_event: threading.Event | None = None
+) -> Iterator[UserProfile]
 ```
 
 ---
@@ -347,6 +387,7 @@ Core API:
 parse_manifest(
     manifest_path: Path,
     source: PreparedSource,
+    cancel_event: threading.Event | None = None
 ) -> Iterator[ManifestEvidence]
 ```
 
@@ -374,6 +415,7 @@ Core API:
 discover_portable_candidates(
     source: PreparedSource,
     evidence_stream: Iterable[PersistedEvidence],
+    cancel_event: threading.Event | None = None,
 ) -> Iterator[PortableCandidate]
 ```
 
@@ -401,6 +443,7 @@ Core API:
 correlate_evidence(
     evidence_rows: Iterable[PersistedEvidence],
     portable_candidates: Iterable[PortableCandidate],
+    cancel_event: threading.Event | None = None,
 ) -> Iterator[CorrelatedApplication]
 ```
 
@@ -433,6 +476,7 @@ classify_user_data(
     app: CorrelatedApplication | None,
     profiles: Iterable[UserProfile],
     source: PreparedSource,
+    cancel_event: threading.Event | None = None,
 ) -> Iterator[UserDataFinding]
 ```
 
@@ -482,23 +526,40 @@ Responsibilities:
 Core APIs:
 
 ```text
-init_db(db_path: Path) -> None
+class Database:
+    @classmethod
+    def open(cls, db_path: Path) -> "Database": ...
+    def close(self) -> None: ...
+    def __enter__(self) -> "Database": ...
+    def __exit__(self, *exc) -> None: ...
 
-save_source(source: SourceRecord) -> str
+    # ---- Writers ----
+    def save_session(self, session: ScanSession) -> str: ...
+    def update_session_status(self, session_id: str, status: SessionStatus) -> None: ...
+    def save_source(self, source: SourceRecord) -> str: ...
+    def update_source_status(self, source_id: str, status: SourceStatus,
+                             warnings_json: str | None = None) -> None: ...
+    def save_user_profile(self, profile: UserProfile) -> str: ...
+    def save_evidence(self, evidence: Evidence) -> str: ...
+    def save_evidence_batch(self, rows: Sequence[Evidence]) -> tuple[str, ...]: ...
+    def save_application(self, app: CorrelatedApplication) -> str: ...
+    def link_evidence_to_app(self, app_id: str, evidence_id: str,
+                             relevance: Relevance) -> None: ...
+    def save_user_data_finding(self, finding: UserDataFinding) -> str: ...
+    def save_warning(self, warning: WarningRecord) -> str: ...
+    def update_finding_triage(self, finding_id: str, *,
+                              user_confirmed: bool | None,
+                              user_notes: str | None) -> None: ...
 
-save_user_profile(profile: UserProfile) -> str
+    # ---- Readers ----
+    def load_session_data(self, session_id: str) -> SessionBundle: ...
+    def iter_persisted_evidence(self, session_id: str, *,
+                                source_id: str | None = None,
+                                batch_size: int = 1000,
+                                ) -> Iterator[tuple[PersistedEvidence, ...]]: ...
+    def get_summary(self, session_id: str) -> ScanSummary: ...
 
-save_evidence(evidence: Evidence) -> str
-
-link_evidence_to_app(app_id: str, evidence_id: str, relevance: str) -> None
-
-save_application(app: CorrelatedApplication) -> str
-
-save_user_data_finding(finding: UserDataFinding) -> str
-
-save_warning(warning: WarningRecord) -> str
-
-load_session_data(session_id: str) -> SessionBundle
+def init_db(db_path: Path) -> None: ...
 ```
 
 The persistence layer shall be thread-safe.
@@ -529,9 +590,16 @@ Responsibilities:
 Core APIs:
 
 ```text
-export_report(session_id: str, output_path: Path) -> None
+class ReportService:
+    def __init__(self, db: Database): ...
 
-import_report(report_path: Path) -> SessionBundle
+    def export_report(self, session_id: str, output_path: Path) -> None: ...
+    def import_report(self, report_path: Path) -> SessionBundle: ...
+    # Import validates schema compatibility (DDD §9), hydrates into the
+    # bound Database, and returns the full SessionBundle for UI hydration.
+    # Per filesystem-layout contract rule 5, import targets a FRESH session
+    # directory + database; the coordinator constructs ReportService bound to
+    # that new Database (session replacement is coordinator-orchestrated).
 ```
 
 Import shall not access source drives.
@@ -556,6 +624,7 @@ Responsibilities:
 - Ensure cleanup is requested on failure.
 - Throttle progress events.
 - Batch result notifications.
+- The coordinator shall own one session `threading.Event` for cancellation, set it on user cancellation and on critical I/O failure, and pass it to every cancellation-aware stage.
 
 Example event types:
 
@@ -571,6 +640,34 @@ WarningEvent
 ScanCompletedEvent
 ScanFailedEvent
 CriticalIoFailureEvent
+```
+
+Core APIs:
+
+```text
+class Coordinator:
+    def __init__(self, event_queue: queue.Queue, db: Database,
+                 mount_manager: MountManager): ...
+
+    # --- Pre-scan services (run on worker threads, never the Tk thread) ---
+    def request_device_list(self) -> None: ...
+    # Async. Emits DeviceListEvent(devices=...) on success, or
+    # DeviceListEvent(devices=(), error=...) on lsblk failure.
+
+    def start_session(self, requests: Sequence[SourceRequest],
+                      options: ScanOptions) -> str: ...
+    # Validates: exactly one windows_os request; every manifest source is
+    # secondary_data (SRS FR-1.3). Creates the ScanSession, constructs
+    # SourceRecords, launches the scan worker. Returns session_id.
+
+    def cancel_session(self) -> None: ...
+    # Sets the session cancel_event; unblocks any pending confirmation wait.
+
+    def answer_confirmation(self, request_id: str, approved: bool) -> None: ...
+    # Called from the Tk thread in response to a ConfirmationRequestEvent;
+    # releases the blocked worker.
+
+    def run(self) -> None: ...
 ```
 
 The coordinator shall not emit one UI event per individual evidence row under normal operation.
@@ -594,6 +691,18 @@ Responsibilities:
 - Support TRIAGE mode.
 - Update only from queued UI events.
 - Flush unsaved triage notes before export and application exit.
+
+Core APIs:
+
+```text
+class App:
+    def __init__(self, root: tk.Tk, event_queue: queue.Queue,
+                 coordinator: Coordinator): ...
+    def run(self) -> None: ...
+    # UI -> coordinator: direct method calls (start_session, cancel_session,
+    # request_device_list, answer_confirmation) — these are thread-safe.
+    # Coordinator -> UI: exclusively via event_queue (ADR-4).
+```
 
 The UI shall not perform direct drive operations.
 
@@ -677,6 +786,9 @@ Errors shall be user-facing and actionable.
 The UI shall avoid blaming the user.
 
 The UI shall avoid implying that data loss has already occurred.
+
+### 4.7 Cooperative Cancellation
+Long-running ingestion, correlation, classification, and manifest-generation functions accept an optional `cancel_event: threading.Event | None`. Cancellation is cooperative. When the event is set, the function shall stop producing new results within a bounded number of internal steps, shall not initiate new reads against a source drive, shall return normally without raising, and shall leave already-yielded or already-persisted results intact. The coordinator owns all session-state transitions resulting from cancellation. Functions without a `cancel_event` parameter are bounded tightly enough not to require one.
 
 ---
 
