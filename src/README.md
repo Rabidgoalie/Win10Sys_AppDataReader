@@ -258,33 +258,4 @@ File-based heuristics use path, name, extension, size, timestamp, and count meta
 
 ## 6. Automated API Reference Generation for LLM Context
 
-### 6.1 Why This Exists
-This project utilizes a local LLM (such as Qwen) for code assistance and development workflows; a larger, more capable model like Qwen3.8-Max, is used for code reviews. Traditional documentation tools (like `pydoc` or `pdoc`) crawl full inheritance trees and introduce heavy framework cruft and MRO bloat (such as base class internals and library boilerplate), which unnecessarily burns token context. 
-
-To keep the LLM context window clean, focused, and token-efficient, we use a custom inspection script (`gen_api.py`) that extracts **only** the local public contract of each module—stripping out inherited noise and outputting clean, structured Markdown summaries into `docs/api-ref/`.
-
-### 6.2 How It Works
-* **The Inspection Script (`gen_api.py`):** Located in the project root, this script inspects Python source modules under `src/`, filtering for locally defined classes, methods, and fields (`obj.__module__ == mod.__name__`), and mirrors the source directory layout into `docs/api-ref/` as `.md` files.
-* **Automated Save Hook:** Using VS Code and the **Run on Save** extension (`emeraldwalk.runonsave`), saving any Python file inside `src/` automatically executes the script in the background via the configured Python interpreter, keeping the corresponding API reference file instantly synced.
-* **Git Hygiene:** The generated documentation artifacts (`docs/api-ref/`) are git-ignored to prevent workspace bloat and merge conflicts, while the script itself (`gen_api.py`) and VS Code configuration (`tasks.json`, `settings.json`) are tracked in version control.
-
-### 6.3 Setup Instructions for Contributors
-If you are cloning this repository and want automated API reference generation enabled in your development environment:
-1. Install the **Run on Save** extension (`emeraldwalk.runonsave`) in VS Code.
-2. Ensure your workspace `.vscode/settings.json` includes the save trigger pointing to the script:
-```json
-   "emeraldwalk.runonsave": {
-       "commands": [
-           {
-               "match": "\\.py$",
-               "cmd": "python3 \"${workspaceFolder}/gen_api.py\" \"${file}\""
-           }
-       ]
-   }
-```
-
-3. Whenever you save a file under `src/`, its matching Markdown documentation summary will automatically update in `docs/api-ref/`. You can also invoke the script manually from the terminal at any time:
-```bash
-python gen_api.py src/<module_name>.py
-```
-
+The automated API Summary feature was retired, due to the adoption of the API Contract Governance architecture (ADR-17). For the governance rules, review the contracts [README.md](../docs/contracts/README.md).
