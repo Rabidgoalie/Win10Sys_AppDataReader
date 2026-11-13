@@ -42,3 +42,6 @@ and git-ignored.
    module and asserts its public surface matches its FROZEN sheet's §1 fence.
 5. Every review fix is classified INTERNAL (pipeline continues) or CONTRACTUAL
    (affected sheets amended, affected modules regenerated).
+
+### Retired/Rejected Alternative
+**Generated API summaries.** An earlier design auto-generated per-module API reference documents from runtime introspection. These were retired with the adoption of rolling contract freeze (ADR-17): they duplicate the §1 fence without authority, omit semantic contracts (§2–§9), and by construction expose Tier 2 internals (_-prefixed helpers, dataclass dunder methods) that governance declares free to vary. `tests/test_contracts.py` provides mechanical enforcement instead.
