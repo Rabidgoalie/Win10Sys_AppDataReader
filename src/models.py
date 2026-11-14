@@ -900,9 +900,13 @@ class SourceRecord:
     """DTO for the ``SCAN_SOURCE`` table (DDD §4).
 
     ``logical_drive`` is a *transient, derived* field (not a DDD column):
-    ``src.db`` derives ``C:`` / ``S1:`` / ... from source addition order and
-    attaches it via :meth:`with_logical_drive`.  ``to_row`` never emits it,
-    so the persisted schema matches the DDD exactly.
+    the coordinator assigns ``C:`` / ``S1:`` / ... from source-addition order
+    when it constructs ``SourceRecord``s in ``start_session`` (SDD §2.19),
+    using :func:`pathnorm.logical_drive_for_position` and
+    :meth:`with_logical_drive` (position 0 is always the ``windows_os``
+    source; secondaries follow request order).  ``src.db`` neither assigns
+    nor persists it: ``to_row`` never emits it, so the persisted schema
+    matches the DDD exactly.
     """
 
     source_id: str
