@@ -625,6 +625,7 @@ Responsibilities:
 - Throttle progress events.
 - Batch result notifications.
 - The coordinator shall own one session `threading.Event` for cancellation, set it on user cancellation and on critical I/O failure, and pass it to every cancellation-aware stage.
+- The coordinator owns logical-drive assignment. In `start_session`, position 0 (the validated `windows_os` request) maps to `C:`; secondary requests map to `S1:`, `S2:`, … in request order, via `pathnorm.logical_drive_for_position` / `validate_logical_drive`, stamped onto each `SourceRecord` at construction (the SDD §2.19 text you cited: "constructs the SourceRecords"). `mount_manager.prepare_source()` then has a single, narrow obligation: **propagate** `source.logical_drive` into the required `PreparedSource.logical_drive` field and raise `ValueError` (caller-contract violation, per the `pathnorm.md` §3 pattern) if it arrives `None`. Lock that propagation rule into `mount_manager.md` DRAFT §2/§3 when you freeze it.
 
 Example event types:
 
