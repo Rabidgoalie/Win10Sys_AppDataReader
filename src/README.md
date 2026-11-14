@@ -52,6 +52,184 @@ win10-disaster-recovery/
     └── test_state.py
 ```
 
+### 1.1 Dependency Graph
+
+```mermaid
+flowchart TD
+    subgraph L0["Entry Point"]
+        MAIN["src/main.py"]
+    end
+    subgraph L1["Presentation"]
+        UI["src/ui.py"]
+    end
+    subgraph L2["Orchestration"]
+        COORD["src/coordinator.py"]
+    end
+    subgraph L3["Session Services"]
+        STATE["src/state.py"]
+    end
+    subgraph L4["Acquisition & Persistence"]
+        MOUNT["src/mount_manager.py"]
+        DB["src/db.py"]
+    end
+    subgraph L5["Evidence Ingestion"]
+        HIVE["src/ingest/hive_locator.py"]
+        PROFILE["src/ingest/user_profile_parser.py"]
+        REG["src/ingest/registry_parser.py"]
+        MGEN["src/ingest/manifest_generator.py"]
+        MPARSE["src/ingest/manifest_parser.py"]
+        PORT["src/ingest/portable_scanner.py"]
+    end
+    subgraph L6["Correlation & Heuristics"]
+        CORR["src/correlator.py"]
+        CLASS["src/heuristics/user_data_classifier.py"]
+        EXCL["src/heuristics/exclusions.py"]
+    end
+    subgraph L7["Foundations (Tier 0 antichain)"]
+        MODELS["src/models.py"]
+        PATHNORM["src/pathnorm.py"]
+        CFG_EV["src/config/evidence_locations.py"]
+        CFG_HEUR["src/config/heuristic_patterns.py"]
+    end
+
+    %% ---- wires into models.py (sky blue) ----
+    UI --> MODELS
+    COORD --> MODELS
+    STATE --> MODELS
+    MOUNT --> MODELS
+    DB --> MODELS
+    HIVE --> MODELS
+    PROFILE --> MODELS
+    REG --> MODELS
+    MGEN --> MODELS
+    MPARSE --> MODELS
+    PORT --> MODELS
+    CORR --> MODELS
+    CLASS --> MODELS
+
+    %% ---- wires into pathnorm.py (bluish green) ----
+    PROFILE --> PATHNORM
+    REG --> PATHNORM
+    MGEN --> PATHNORM
+    MPARSE --> PATHNORM
+    PORT --> PATHNORM
+    CORR --> PATHNORM
+    CLASS --> PATHNORM
+    COORD --> PATHNORM
+
+    %% ---- wires into evidence_locations.py (orange) ----
+    HIVE --> CFG_EV
+    PROFILE --> CFG_EV
+    REG --> CFG_EV
+
+    %% ---- wires into heuristic_patterns.py (reddish purple) ----
+    MGEN --> CFG_HEUR
+    MPARSE --> CFG_HEUR
+    PORT --> CFG_HEUR
+    CLASS --> CFG_HEUR
+    EXCL --> CFG_HEUR
+
+    %% ---- wires into exclusions.py (vermillion) ----
+    PORT --> EXCL
+    CLASS --> EXCL
+
+    %% ---- wires into db.py (blue) ----
+    MAIN --> DB
+    COORD --> DB
+    STATE --> DB
+
+    %% ---- wires into mount_manager.py (yellow) ----
+    MAIN --> MOUNT
+    COORD --> MOUNT
+
+    %% ---- orchestration / control wiring (neutral gray) ----
+    COORD --> STATE
+    COORD --> HIVE
+    COORD --> PROFILE
+    COORD --> REG
+    COORD --> MGEN
+    COORD --> MPARSE
+    COORD --> PORT
+    COORD --> CORR
+    COORD --> CLASS
+    MAIN --> UI
+    MAIN --> COORD
+    UI --> COORD
+
+    %% ---- pending wires (dashed) ----
+    UI -.-> CFG_EV
+    UI -.-> CFG_HEUR
+
+    %% ---- node fills mirror incoming wire color ----
+    classDef cSky fill:#56B4E9,stroke:#56B4E9,color:#0B0B0F;
+    classDef cGreen fill:#009E73,stroke:#009E73,color:#0B0B0F;
+    classDef cOrange fill:#E69F00,stroke:#E69F00,color:#0B0B0F;
+    classDef cPurple fill:#CC79A7,stroke:#CC79A7,color:#0B0B0F;
+    classDef cVerm fill:#D55E00,stroke:#D55E00,color:#FFFFFF;
+    classDef cBlue fill:#0072B2,stroke:#0072B2,color:#FFFFFF;
+    classDef cYellow fill:#F0E442,stroke:#F0E442,color:#0B0B0F;
+    classDef cCtrl fill:#252538,stroke:#9E9E9E,color:#E8E8E8;
+    class MODELS cSky;
+    class PATHNORM cGreen;
+    class CFG_EV cOrange;
+    class CFG_HEUR cPurple;
+    class EXCL cVerm;
+    class DB cBlue;
+    class MOUNT cYellow;
+    class MAIN,UI,COORD,STATE,HIVE,PROFILE,REG,MGEN,MPARSE,PORT,CORR,CLASS cCtrl;
+
+    %% ---- wire colors (index-ordered per declaration above) ----
+    linkStyle 0,1,2,3,4,5,6,7,8,9,10,11,12 stroke:#56B4E9,stroke-width:3px;
+    linkStyle 13,14,15,16,17,18,19,20 stroke:#009E73,stroke-width:3px;
+    linkStyle 21,22,23 stroke:#E69F00,stroke-width:3px;
+    linkStyle 24,25,26,27,28 stroke:#CC79A7,stroke-width:3px;
+    linkStyle 29,30 stroke:#D55E00,stroke-width:3px;
+    linkStyle 31,32,33 stroke:#0072B2,stroke-width:3px;
+    linkStyle 34,35 stroke:#F0E442,stroke-width:3px;
+    linkStyle 36,37,38,39,40,41,42,43,44,45,46,47 stroke:#9E9E9E,stroke-width:2px;
+    linkStyle 48 stroke:#E69F00,stroke-width:3px,stroke-dasharray:5 5;
+    linkStyle 49 stroke:#CC79A7,stroke-width:3px,stroke-dasharray:5 5;
+```
+
+#### Wire color legend
+
+| Color | Hex | Wire lands on (dependency target) |
+|---|---|---|
+| Sky blue | `#56B4E9` | `src/models.py` |
+| Bluish green | `#009E73` | `src/pathnorm.py` |
+| Orange | `#E69F00` | `src/config/evidence_locations.py` |
+| Reddish purple | `#CC79A7` | `src/config/heuristic_patterns.py` |
+| Vermillion | `#D55E00` | `src/heuristics/exclusions.py` |
+| Blue | `#0072B2` | `src/db.py` |
+| Yellow | `#F0E442` | `src/mount_manager.py` |
+| Neutral gray | `#9E9E9E` | Orchestration/control wiring (coordinator stage invocation, entry/control flow, session-service binding). Contract includes for gray wires are given by the dependency table, not by color. |
+
+Dashed wire = pending resolution at the consuming module's DRAFT freeze. Palette: Okabe–Ito (color-blind-safe); gray is a neutral. Colors aid tracing only — the dependency table is normative.
+
+### 1.2 Forward/Reverse dependency table
+
+| Target module | Direct dependencies (attach these sheets) | Direct dependents |
+|---|---|---|
+| `src/main.py` | coordinator, db, mount_manager, ui | — |
+| `src/ui.py` | coordinator, models | main |
+| `src/coordinator.py` | correlator, db, heuristics/user_data_classifier, all six `ingest/*`, models, mount_manager, pathnorm, state | main, ui |
+| `src/state.py` | db, models | coordinator |
+| `src/mount_manager.py` | models | coordinator, main |
+| `src/db.py` | models | coordinator, main, state |
+| `src/ingest/hive_locator.py` | config/evidence_locations, models | coordinator |
+| `src/ingest/user_profile_parser.py` | config/evidence_locations, models, pathnorm | coordinator |
+| `src/ingest/registry_parser.py` | config/evidence_locations, models, pathnorm | coordinator |
+| `src/ingest/manifest_generator.py` | config/heuristic_patterns, models, pathnorm | coordinator |
+| `src/ingest/manifest_parser.py` | config/heuristic_patterns, models, pathnorm | coordinator |
+| `src/ingest/portable_scanner.py` | config/heuristic_patterns, exclusions, models, pathnorm | coordinator |
+| `src/correlator.py` | models, pathnorm | coordinator |
+| `src/heuristics/user_data_classifier.py` | config/heuristic_patterns, exclusions, models, pathnorm | coordinator |
+| `src/heuristics/exclusions.py` | config/heuristic_patterns | portable_scanner, user_data_classifier |
+| `src/models.py` | — *(leaf; no Tier 0 peer imports)* | 13 modules: coordinator, correlator, db, heuristics/user_data_classifier, all six `ingest/*`, mount_manager, state, ui |
+| `src/pathnorm.py` | — *(leaf)* | coordinator, correlator, heuristics/user_data_classifier, manifest_generator, manifest_parser, portable_scanner, registry_parser, user_profile_parser |
+| `src/config/evidence_locations.py` | — *(leaf; `BoundsProvider` Protocol deliberately avoids models)* | hive_locator, registry_parser, user_profile_parser; *(pending: ui or main; decide in the `ui.md`/`main.md` drafting pass)* |
+| `src/config/heuristic_patterns.py` | — *(leaf)* | exclusions, manifest_generator, manifest_parser, portable_scanner, user_data_classifier; *(pending: ui or main; decide in the `ui.md`/`main.md` drafting pass)* |
+
 ---
 
 ## 2. Implementation Roadmap (Plus Context Mapping)
