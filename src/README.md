@@ -76,7 +76,14 @@ Each module must be accompanied by a unit test suite. To be marked as completed,
 |  | `src/db.py` | Manages SQLite connection pooling, schema migrations, and serialized write transactions. | **DDD, SDD, ADR** | Needs the exact SQLite schema, indexes, and constraints (DDD), thread-safety rules (SDD 2.17), and evidence-first model (ADR-6). |
 |  | `src/mount_manager.py` | Handles `lsblk` discovery, safe read-only `ntfs-3g` mounting, and unmount confirmation flows. | **SRS, SDD, ADR** | **CRITICAL:** Needs `lsblk` JSON parsing rules, `ntfs-3g` safe mount contracts (SRS 3.8), unmount confirmation flows (ADR-5), and privilege boundaries (ADR-11). |
 
-#### Phase 3: Evidence Ingestion
+#### Phase 3: Correlation and Heuristics
+| Completed | Target File | Description | Attach These SDLC Documents | Why? |
+| :--- | :--- | :--- | :--- | :--- |
+|  | `src/correlator.py` | Groups persisted evidence into source-scoped application records with deterministic hashes. | **SRS, SDD, DDD** | Needs deterministic identity hashing (DDD 6), source-scoping rules, and fingerprint status assignment (SRS FR-2.7). |
+|  | `src/heuristics/exclusions.py` | Filters out noisy system directories, cache paths, and VCS metadata to reduce false positives. | **SRS, SDD** | Needs default exclusion categories to prevent false positives in caches and VCS metadata (SDD 2.16). |
+|  | `src/heuristics/user_data_classifier.py` | Classifies user content locations, checks Documents baselines, and computes severity/confidence. | **SRS, SDD, DDD** | Needs Documents baseline comparison, severity/confidence models, and finding deduplication (SRS FR-4, DDD USER_DATA_FINDING). |
+
+#### Phase 4: Evidence Ingestion
 | Completed | Target File | Description | Attach These SDLC Documents | Why? |
 | :--- | :--- | :--- | :--- | :--- |
 |  | `src/ingest/hive_locator.py` | Discovers offline software, system, and user registry hives while handling missing hive errors. | **SRS, SDD** | Needs machine/user hive discovery rules and missing hive warning handling (SDD 2.9, SRS FR-2.4). |
@@ -85,13 +92,6 @@ Each module must be accompanied by a unit test suite. To be marked as completed,
 |  | `src/ingest/manifest_generator.py` | Invokes `ntfsls` to generate recursive filesystem manifests without modifying source media. | **SRS, SDD, ADR** | Needs `ntfsls` subprocess invocation, safe output path enforcement, and read-only guarantees (SRS FR-1.6, ADR-1). |
 |  | `src/ingest/manifest_parser.py` | Parses generated manifest files line-by-line using bounded memory processing. | **SRS, SDD** | Needs streaming line-by-line parsing, malformed line counting, and memory bounding (SRS FR-1.7, SDD 2.12). |
 |  | `src/ingest/portable_scanner.py` | Identifies portable application candidates and executable bundles via metadata heuristics. | **SRS, SDD, ADR** | Needs heuristic layout detection without opening file contents (SRS FR-3, ADR-7). |
-
-#### Phase 4: Correlation and Heuristics
-| Completed | Target File | Description | Attach These SDLC Documents | Why? |
-| :--- | :--- | :--- | :--- | :--- |
-|  | `src/correlator.py` | Groups persisted evidence into source-scoped application records with deterministic hashes. | **SRS, SDD, DDD** | Needs deterministic identity hashing (DDD 6), source-scoping rules, and fingerprint status assignment (SRS FR-2.7). |
-|  | `src/heuristics/user_data_classifier.py` | Classifies user content locations, checks Documents baselines, and computes severity/confidence. | **SRS, SDD, DDD** | Needs Documents baseline comparison, severity/confidence models, and finding deduplication (SRS FR-4, DDD USER_DATA_FINDING). |
-|  | `src/heuristics/exclusions.py` | Filters out noisy system directories, cache paths, and VCS metadata to reduce false positives. | **SRS, SDD** | Needs default exclusion categories to prevent false positives in caches and VCS metadata (SDD 2.16). |
 
 #### Phase 5: State and Coordination
 | Completed | Target File | Description | Attach These SDLC Documents | Why? |
