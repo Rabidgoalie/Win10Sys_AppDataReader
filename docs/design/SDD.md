@@ -330,7 +330,7 @@ enumerate_registry_evidence(
     hives: HiveSet,
     options: RegistryParseOptions,
     cancel_event: threading.Event | None = None,
-) -> Iterator[RegistryEvidence]
+) -> Iterator[Evidence]
 ```
 
 Registry parse failures shall produce warnings and shall not terminate the entire scan unless a critical I/O failure occurs.
