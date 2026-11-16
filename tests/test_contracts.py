@@ -179,12 +179,32 @@ def check_dataclass(dc_cls: type, ast_node: ast.ClassDef, mismatches: list[str])
         if isinstance(ast_fields[name], (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
         if name not in actual_fields:
-            if not hasattr(dc_cls, name):
+            if not has_member(dc_cls, name):
                 mismatches.append(f"Dataclass {dc_cls.__name__} missing field/method {name}")
                 
     for name in actual_fields:
         if name not in ast_fields:
             mismatches.append(f"Dataclass {dc_cls.__name__} has extra field {name}")
+
+
+def has_member(cls: type, member_name: str) -> bool:
+    """Check whether a class exposes a member, covering both runtime
+    attributes AND annotation-only declarations (Protocols, TypedDicts,
+    slotted dataclass fields without defaults, ABCs with bare annotations).
+
+    Standard hasattr() misses annotation-only members because Python stores
+    them in __annotations__ without creating a class-level attribute.
+    """
+    # 1. Standard runtime attributes, methods, descriptors, slots (including inherited).
+    if hasattr(cls, member_name):
+        return True
+
+    # 2. Annotation-only declarations across the full MRO.
+    for base in cls.__mro__:
+        if member_name in getattr(base, "__annotations__", {}):
+            return True
+
+    return False
 
 
 def check_class(cls: type, ast_node: ast.ClassDef, mismatches: list[str],
@@ -194,7 +214,7 @@ def check_class(cls: type, ast_node: ast.ClassDef, mismatches: list[str],
     for name, ast_stmt in ast_members.items():
         if name.startswith("_"):
             continue
-        if not hasattr(cls, name):
+        if not has_member(cls, name):
             mismatches.append(f"Class {cls.__name__} missing member {name}")
             continue
 
