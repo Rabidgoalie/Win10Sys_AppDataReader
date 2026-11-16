@@ -103,9 +103,9 @@ __all__ = [
     "init_db",
 ]
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
-T = TypeVar("T")
+_T = TypeVar("_T")
 
 # db.md §1: DB_SCHEMA_VERSION must equal models.SCHEMA_VERSION.  The DDD
 # schema version and the database DDL version move together; keeping them
@@ -466,7 +466,7 @@ def _enforce_companion_modes(db_path: Path) -> None:
         try:
             os.chmod(companion, 0o600)
         except OSError:
-            logger.debug("Best-effort chmod 0600 on %s failed; continuing", companion)
+            _logger.debug("Best-effort chmod 0600 on %s failed; continuing", companion)
 
 
 def _row_as_dict(row: sqlite3.Row) -> dict[str, Any]:
@@ -647,11 +647,11 @@ class Database:
                 try:
                     conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
                 except sqlite3.Error:
-                    logger.debug("wal_checkpoint on close failed; continuing")
+                    _logger.debug("wal_checkpoint on close failed; continuing")
                 if not conn.closed:
                     conn.close()
             except sqlite3.Error:
-                logger.warning(
+                _logger.warning(
                     "Error while closing session database %s", self._path, exc_info=True
                 )
 
@@ -682,7 +682,7 @@ class Database:
                 "refused (db.md §3). Open a new instance with Database.open()."
             )
 
-    def _write(self, operation: Callable[[sqlite3.Connection], T]) -> T:
+    def _write(self, operation: Callable[[sqlite3.Connection], _T]) -> _T:
         """Run ``operation`` inside one serialized ``BEGIN IMMEDIATE``
         transaction (db.md §2: commits promptly).  Error mapping per
         db.md §3: ``sqlite3.IntegrityError`` -> ``DatabaseIntegrityError``;
@@ -695,17 +695,17 @@ class Database:
             try:
                 conn.execute("BEGIN IMMEDIATE")
             except sqlite3.Error as exc:
-                logger.warning("BEGIN IMMEDIATE failed: %s", exc)
+                _logger.warning("BEGIN IMMEDIATE failed: %s", exc)
                 raise DatabaseError(f"Could not begin write transaction: {exc}") from exc
             try:
                 result = operation(conn)
             except sqlite3.IntegrityError as exc:
                 self._rollback(conn)
-                logger.warning("Integrity violation: %s", exc)
+                _logger.warning("Integrity violation: %s", exc)
                 raise DatabaseIntegrityError(f"Integrity violation: {exc}") from exc
             except sqlite3.Error as exc:
                 self._rollback(conn)
-                logger.warning("Write transaction failed: %s", exc)
+                _logger.warning("Write transaction failed: %s", exc)
                 raise DatabaseError(f"SQLite failure during write: {exc}") from exc
             except BaseException:
                 # Intentional DatabaseError / DatabaseIntegrityError raised
@@ -716,11 +716,11 @@ class Database:
                 conn.execute("COMMIT")
             except sqlite3.Error as exc:
                 self._rollback(conn)
-                logger.warning("COMMIT failed: %s", exc)
+                _logger.warning("COMMIT failed: %s", exc)
                 raise DatabaseError(f"Could not commit write transaction: {exc}") from exc
             return result
 
-    def _read(self, operation: Callable[[sqlite3.Connection], T]) -> T:
+    def _read(self, operation: Callable[[sqlite3.Connection], _T]) -> _T:
         """Run a read under the same serialization lock (db.md §6: total
         serialization; connections/cursors never escape the class)."""
         with self._lock:
@@ -728,14 +728,14 @@ class Database:
             try:
                 return operation(self._conn)
             except sqlite3.Error as exc:
-                logger.warning("Read failed: %s", exc)
+                _logger.warning("Read failed: %s", exc)
                 raise DatabaseError(f"SQLite failure during read: {exc}") from exc
 
     def _rollback(self, conn: sqlite3.Connection) -> None:
         try:
             conn.execute("ROLLBACK")
         except sqlite3.Error:
-            logger.debug("ROLLBACK failed; connection may be unusable", exc_info=True)
+            _logger.debug("ROLLBACK failed; connection may be unusable", exc_info=True)
 
     def _initialize_schema(self) -> None:
         def _create(conn: sqlite3.Connection) -> None:
@@ -1280,7 +1280,7 @@ class Database:
                     try:
                         batch = cursor.fetchmany(effective)
                     except sqlite3.Error as exc:
-                        logger.warning("Evidence iteration failed: %s", exc)
+                        _logger.warning("Evidence iteration failed: %s", exc)
                         raise DatabaseError(
                             f"SQLite failure during evidence iteration: {exc}"
                         ) from exc
@@ -1292,7 +1292,7 @@ class Database:
                 try:
                     cursor.close()
                 except sqlite3.Error:
-                    logger.debug("Cursor cleanup failed during evidence iteration", exc_info=True)
+                    _logger.debug("Cursor cleanup failed during evidence iteration", exc_info=True)
 
     def get_summary(self, session_id: str) -> ScanSummary:
         """Compute session counts with SQL aggregates — no rows are
