@@ -1,9 +1,11 @@
-# Module Contract: src/db.py — v0.9 DRAFT
-Refines: SDD §2.17, DDD §1/§7/§10, ADR-3. Deviation: SDD lists free functions;
-this contract wraps them in a `Database` class owning the serialized connection.
-Module-level `init_db()` retained for SDD fidelity and tests.
+# Module Contract: src/db.py — v1.0.0 FROZEN (Tier 1)
+
+Frozen: 2026-11-17 · Supersedes: v0.9 DRAFT · Approver: Project Coordinator ______
+
+Refines: SDD §2.17, DDD §1/§4/§7/§10, ADR-3, ADR-18, ADR-21, ADR-22.
 
 ## 1. Public API
+
 ```python
 from typing import Final, Iterator, Sequence
 
@@ -49,46 +51,71 @@ def init_db(db_path: Path) -> None: ...   # schema-only; SDD §2.17 compat
 ```
 
 ## 2. Postconditions
+
 - `save_*` returns the assigned UUID; if the DTO already carries an ID it is used as-is.
-- Dedup is idempotent, never an error: duplicate `evidence_hash`,
-  `(session_id, source_id, identity_hash)`, and
-  `(session_id, source_id, normalized_path)` inserts return the EXISTING row's ID.
-- `save_evidence_batch`: 1 ≤ len(rows) ≤ 500 else ValueError; one transaction per batch.
+- Dedup is idempotent, never an error: duplicate `evidence_hash`, `(session_id, source_id, identity_hash)`, and `(session_id, source_id, normalized_path)` inserts return the EXISTING row's ID.
+- Primary-key and UNIQUE collisions OUTSIDE those three dedup keys raise `DatabaseIntegrityError` — including re-saving a session, source, profile, or warning whose ID already exists, and any insert carrying an ID already present without matching the corresponding dedup key. Dedup never applies to session, source, profile, or warning primary keys. This is the hook `state.py` relies on for ADR-21 hydration-conflict detection.
+- `save_evidence_batch`: 1 ≤ len(rows) ≤ 500 else ValueError; one transaction per batch; the returned tuple aligns positionally with `rows` (each slot is the new or pre-existing ID for that row).
+- `link_evidence_to_app` is idempotent: re-linking an existing `(app_id, evidence_id)` pair is a silent no-op. Cross-source links — the evidence row and the application row belong to different `source_id`s — raise `DatabaseIntegrityError` (DDD §4 source-scoping).
 - `iter_persisted_evidence`: deterministic rowid order; yields tuples ≤ batch_size.
 - FK ordering enforced: session before sources, sources before everything else.
-- `update_finding_triage` is the ONLY mutator of hydrated report data (enforces
-  ADR-3: post-hydration mutability limited to user_confirmed/user_notes).
-  Commits promptly. No generic UPDATE API exists.
+- `update_source_status`: `warnings_json=None` leaves the column unchanged; pass an explicit string to replace it.
+- `update_finding_triage` replaces both fields with the supplied values; `None` clears the field (sets NULL). Both kwargs are mandatory (no defaults), so callers always supply full state. It is the ONLY mutator of hydrated report data (enforces ADR-3: post-hydration mutability limited to user_confirmed/user_notes). `update_finding_triage` raises `DatabaseError` if `finding_id` does not exist.
+- The `update_*` methods raise `DatabaseError` when the target row does not
+exist; they are never silent no-ops on unknown IDs.
+- Readers (`load_session_data`, `get_summary`, `iter_persisted_evidence`) raise `DatabaseError` for an unknown `session_id`.
+- `get_summary`: `portable_candidate_count` counts `APP_RECORD` rows whose `fingerprint_status = 'Portable'` (there is no portable-candidate table); the remaining counts are row counts of their respective tables scoped to the session.
+- `close()` is idempotent. `__exit__` rolls back any uncommitted transaction when an exception is in flight, then closes; it never suppresses the exception.
+- Commits promptly. No generic UPDATE API exists.
+- `init_db(db_path)` is schema-only and idempotent. It is equivalent to opening and immediately closing a `Database` (it delegates to `Database.open`). It never retains a connection, never mutates existing data, and never resolves paths. `Database.open` is the single source of truth for schema; `init_db` shall not carry independent schema logic.
 
 ## 3. Error contract
-- Raises `DatabaseError` on unrecoverable SQLite failure; `DatabaseIntegrityError`
-  on FK violations. Never raises on dedup conflicts.
-- db.py errors are HOST-side. They must never be mapped by callers to
-  `CriticalIoFailureEvent` (that is reserved for source-drive I/O).
-- Operations after `close()` raise `DatabaseError`.
+
+- Raises `DatabaseError` on unrecoverable SQLite failure, on any operation after `close()`, and on unknown IDs per §2 (unknown `session_id` in readers; unknown target rows in `update_*`). Raises `DatabaseIntegrityError` (a `DatabaseError` subclass) on FK violations, cross-source application–evidence links, and primary-key/UNIQUE collisions outside the dedup keys (§2). Never raises on dedup conflicts.
+- `save_evidence_batch` raises `ValueError` — not `DatabaseError` — for out-of-bounds batch sizes, before touching the connection.
+- db.py errors are HOST-side. They must never be mapped by callers to `CriticalIoFailureEvent` (that is reserved for source-drive I/O).
 
 ## 4. Events & warnings
-None. db.py emits no UI events and creates no WarningRecord; callers own wording.
+
+None. db.py emits no UI events and creates no WarningRecord; callers own
+wording.
 
 ## 5. I/O surface
+
 - One SQLite file located at `<base>/sessions/<session_id>/win10drb.sqlite`, resolved by the coordinator per the `docs/contracts/filesystem-layout.md` contract. The database module receives this absolute path via `Database.open(db_path)` and never resolves paths itself.
+- The database file is created mode 0600 regardless of umask (filesystem-layout contract, ADR-18); the WAL `-wal`/`-shm` companion files inherit the same mode. The parent directory is assumed to exist; db.py creates no directories.
 - WAL journal mode; busy_timeout ≥ 5000 ms; PRAGMA foreign_keys = ON on every connection.
 - No other filesystem access. Never touches source mounts or manifests.
 
 ## 6. Threading
-- All public methods thread-safe via one internal lock around one connection
-  (check_same_thread=False). Connections/cursors never escape the class.
+
+- All public methods thread-safe via one internal lock around one connection (check_same_thread=False). Connections/cursors never escape the class.
+- `iter_persisted_evidence` holds the internal lock only while fetching each batch, not across yields; rowid ordering is stable because no delete API exists.
 - No reader bypass: serialization is total at this scale; correctness over throughput.
 
 ## 7. Non-contract internals
+
 Index creation order, SQL text, row-mapping helpers, batch page size tuning.
 
 ## 8. Acceptance fixtures
-tests/test_db.py + tmp SQLite only (NFR-10: no root, no drives).
 
-## 9. Deviations
-- Class-based API vs SDD §2.17 free functions (rationale: lifecycle + test isolation).
-- Adds `update_source_status`, `update_session_status`, `update_finding_triage`,
-  `iter_persisted_evidence`, `get_summary` — implied by SDD §2.13/§2.19, UIDD triage,
-  and `ScanCompletedEvent`, but absent from the SDD list. Recorded here so they are
-  deliberate, not accidental.
+tests/test_db.py + tmp SQLite only (NFR-10: no root, no drives). Fixtures must
+cover at least: dedup idempotency for all three dedup keys; PK/UNIQUE collision
+raising `DatabaseIntegrityError`; cross-source link rejection and link no-op;
+unknown-ID/unknown-session raises; batch positional alignment, bounds
+(`ValueError`), and all-or-nothing transactionality; `warnings_json=None`
+leave-alone; triage replace/clear; post-`close()` raises; 0600 file mode;
+concurrent serialized access.
+
+## 9. Deviations and amendment record
+
+Deviations from SDD §2.17: none. §1 matches the SDD Core APIs surface exactly.
+The fence additionally declares `DB_SCHEMA_VERSION`, `DatabaseError`, and
+`DatabaseIntegrityError` — additive refinements carrying §2/§3 semantics, not
+structural deviations. (The v0.9 DRAFT claimed deviations against an older SDD
+revision in which §2.17 listed free functions; that claim was stale and is
+removed at freeze.)
+
+| Version | Date | Change | Rationale | Approved by |
+| --- | --- | --- | --- | --- |
+| 1.0.0 | 2026-11-16 | Initial freeze. Reviewer sign-off clarifications folded into §2/§3/§5/§6/§8: link idempotency + DDD §4 source-scoping enforcement; PK/UNIQUE collisions outside dedup keys raise `DatabaseIntegrityError` (ADR-21 hydration hook); `warnings_json=None` leaves the column unchanged; unknown `session_id`/unknown target rows raise `DatabaseError`; `update_finding_triage` replace/clear semantics; iterator lock held per fetch, not across yields; 0600 file mode with WAL companions, no directory creation; batch results align positionally with input; `portable_candidate_count` defined via `APP_RECORD.fingerprint_status`; `close()` idempotent and `__exit__` rolls back on exception; Refines line cites DDD §4, ADR-18, ADR-21, ADR-22. §1 fence is byte-identical to v0.9 DRAFT — no mechanical surface change. Also removed the stale deviation claims inherited from v0.9 DRAFT: the current SDD §2.17 already specifies this API verbatim (§9 records the history). | Ambiguity removed before local-model implementation; pre-freeze edits carry no amendment cost (ADR-17) | Coordinator + Reviewer |
