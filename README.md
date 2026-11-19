@@ -1,5 +1,19 @@
 # Windows 10 Disaster Recovery
 
+## AI Disclosure & Project State
+
+### AI-Usage
+AI was used to generate the code for this project, with the SDLC design documentation seen _in_ this project as guard-rails for development. This software is not "vibe-coded", and there has been a human-in-the-loop the entire process. However, if you do not feel comfortable using a software package coded by AI, it is completely understandable. This project is meant to help others, and to give you _some_ degree of confidence in finding and recovering the files that you've authored. If using AI-coded software makes you uncomfortable, then you should _not_ use this software; this project's design tenants are taken seriously, even if that means telling you that you shouldn't use this software.
+
+This software _**does NOT**_ use AI in any way during operation. Absolutely _**NO**_ AI model scans your drives, reads documents, reviews results, or is in any way involved. Access to the Internet is necessary _only_ so that the required Linux/Python packages can be downloaded to the Ubuntu 24.04 Live Session environment when you run the application (see below for more information); no information of any kind is transmitted, other than the information required to actually select and install the aforementioned Linux/Python packages. No telemetry, no advertising cookies, and most relevant to this subsection: _**no AI-utilization**_.
+
+### Project State
+This software is currently in development and is incomplete. If you are able to read this paragraph in the repositories README file, then you should not attempt to use the software; it is incomplete and non-functional at this point.
+
+---
+
+## Project Overview
+
 A free, MIT-licensed Linux utility designed to help users recover from catastrophic Windows 10 boot failures.
 
 The most important goal of this project is to help users find irreplaceable, self-authored files before reinstalling an operating system or wiping a drive.
@@ -8,7 +22,7 @@ The most important goal of this project is to help users find irreplaceable, sel
 
 The application also builds an inventory of installed applications, portable applications, and orphaned application evidence to help users understand what existed on their Windows installation. This will aid the user in reinstalling their applications on a new Windows install, to "restore" their previous computing environment.
 
-## Important Warning
+### Important Warning
 
 If your Windows 10 system has failed, do not wipe or format drives until you have scanned them. The results of the scan can then be used to manually recover all user-generated data found by the scan, before the installation of an OS. **The application does _not_ recover files for you; you _will_ have to copy these to backup storage media manually.**
 
@@ -16,7 +30,7 @@ If you used secondary drives for programs, games, documents, photos, videos, mus
 
 > Once a drive is wiped, data recovery can be very difficult or impossible, outside _very_ expensive data recovery services.
 
-## Essential Safety Step Before Scanning
+### Essential Safety Step Before Scanning
 
 Before booting into Linux to use this application, you must verify that your Windows 10 boot failure wasn't caused by a physically dying hard drive. While our software is strictly read-only and designed to "do no harm," running scans on a physically failing drive can cause permanent data loss.
 
@@ -33,7 +47,7 @@ To complete a safe recovery, you will need access to two tools:
 
 **You do not need to buy or use two separate physical USB thumb drives.** You can simply flash a single USB drive with the Windows Installer first, use it to complete the [Drive Health Guide](DRIVE_HEALTH_GUIDE.md), and then plug that thumb drive into a working computer to overwrite and re-flash it with the Ubuntu 24.04 installer.
 
-## Recommended Environment
+### Recommended Environment
 
 The primary recommended environment is:
 
@@ -83,7 +97,7 @@ Win10DRBPythonVenv
 
 It will not automatically install host system packages. If host packages are missing, it will print clear manual installation instructions and exit.
 
-## Running the Application
+### Running the Application
 
 After setup completes:
 
