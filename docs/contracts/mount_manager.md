@@ -416,7 +416,7 @@ Every raised message must be actionable and non-blaming (SRS FR-7.2, NFR-2): wha
 | `ReleaseOutcome(still_mounted=True)` | `WarningEvent(category=ACQUISITION, severity=WARNING)` naming the mount point and the next-launch sweep |
 | `sweep_orphans()` non-empty | Startup `WarningEvent(category=ACQUISITION)` + guided `release_orphan` flow |
 
-Non-fatal observations internal to the module (column fallback used, base mode tightened, external unmount performed, cancellation rollback detail) are written to the module logger at `INFO`/`WARNING`. The logger is a private symbol (`_LOG`); log text is Tier 2.
+Non-fatal observations internal to the module (column fallback used, base mode tightened, external unmount performed, cancellation rollback detail) are written to the module logger at `INFO`/`WARNING`. The logger is a private symbol (`_logger`); log text is Tier 2.
 
 ## 5. I/O surface
 
@@ -629,7 +629,7 @@ Contract drift: `tests/test_contracts.py::test_contract_sheet[mount_manager.md]`
 | V-2 | `ntfs-3g` accepts the positional form `<device> <mountpoint>` after `-o <opts>` with no `--`, and rejects nothing in the vector as an unknown option. | Same run as V-1. | Amend §5.2 M-1. |
 | V-3 | `lsblk` from `util-linux 2.39` accepts all of `LSBLK_COLUMNS`, including both `MOUNTPOINT` and `MOUNTPOINTS`, with `--json --bytes --paths`. | Host command, no drive access. | Reduce `LSBLK_COLUMNS` to the fallback set and amend §1. |
 | V-4 | `umount` and `sudo` resolve to the documented absolute candidates on a merged-`/usr` Ubuntu 24.04 Live session. | Host inspection. | Amend candidate lists (Tier 2) and re-run §8 fixtures. |
-| V-5 | No frozen symbol collides with the mechanical checker: the module logger is `_LOG`; every public symbol in the source appears in §1 and vice versa. | `pytest tests/test_contracts.py --collect-only` then the contract test. | Fix the fence or the source before promotion. |
+| V-5 | No frozen symbol collides with the mechanical checker: the module logger is `_logger`; every public symbol in the source appears in §1 and vice versa. | `pytest tests/test_contracts.py --collect-only` then the contract test. | Fix the fence or the source before promotion. |
 
 ### 9.4 Obligations created for downstream sheets
 
